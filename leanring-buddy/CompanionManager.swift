@@ -87,6 +87,44 @@ final class CompanionManager: ObservableObject {
     private var kbContext: String = ""
     private var kbContextLastFetched: Date?
 
+    /// Chat message history for the text chat UI.
+    struct ChatMessage: Identifiable {
+        let id = UUID()
+        let role: String // "user" or "assistant"
+        let content: String
+        let timestamp: Date
+    }
+
+    @Published var chatMessages: [ChatMessage] = []
+    @Published var isChatLoading: Bool = false
+
+    /// Send a text question through the KB chat pipeline (no voice, no screenshot).
+    func sendChatMessage(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        chatMessages.append(ChatMessage(role: "user", content: trimmed, timestamp: Date()))
+        isChatLoading = true
+
+        Task {
+            do {
+                let (response, _) = try await openAIAPI.analyzeImage(
+                    images: [],
+                    systemPrompt: systemPromptWithKB,
+                    conversationHistory: chatMessages.dropLast().map { msg in
+                        (userPlaceholder: msg.role == "user" ? msg.content : "",
+                         assistantResponse: msg.role == "assistant" ? msg.content : "")
+                    }.filter { !$0.userPlaceholder.isEmpty || !$0.assistantResponse.isEmpty },
+                    userPrompt: trimmed
+                )
+                chatMessages.append(ChatMessage(role: "assistant", content: response, timestamp: Date()))
+            } catch {
+                chatMessages.append(ChatMessage(role: "assistant", content: "Error: \(error.localizedDescription)", timestamp: Date()))
+            }
+            isChatLoading = false
+        }
+    }
+
     /// Conversation history so Claude remembers prior exchanges within a session.
     /// Each entry is the user's transcript and Claude's response.
     private var conversationHistory: [(userTranscript: String, assistantResponse: String)] = []

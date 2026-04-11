@@ -13,6 +13,8 @@ import SwiftUI
 struct CompanionPanelView: View {
     @ObservedObject var companionManager: CompanionManager
     @State private var emailInput: String = ""
+    @State private var chatInput: String = ""
+    @State private var isWaitingForResponse: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -67,9 +69,19 @@ struct CompanionPanelView: View {
 
                 autoCopyResponseToggleRow
                     .padding(.horizontal, 16)
+            }
 
-                dmFarzaButton
+            if companionManager.hasCompletedOnboarding && companionManager.allPermissionsGranted {
+                Spacer()
+                    .frame(height: 12)
+
+                Divider()
+                    .background(DS.Colors.borderSubtle)
                     .padding(.horizontal, 16)
+
+                chatSection
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
             }
 
             Spacer()
@@ -669,8 +681,8 @@ struct CompanionPanelView: View {
             Spacer()
 
             HStack(spacing: 0) {
-                modelOptionButton(label: "Sonnet", modelID: "claude-sonnet-4-6")
-                modelOptionButton(label: "Opus", modelID: "claude-opus-4-6")
+                modelOptionButton(label: "GPT-4.1", modelID: "gpt-4.1")
+                modelOptionButton(label: "GPT-4.1 mini", modelID: "gpt-4.1-mini")
             }
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -701,6 +713,121 @@ struct CompanionPanelView: View {
         }
         .buttonStyle(.plain)
         .pointerCursor()
+    }
+
+    // MARK: - Chat Section
+
+    private var chatSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("CHAT")
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .foregroundColor(DS.Colors.textTertiary)
+
+            // Message history
+            if !companionManager.chatMessages.isEmpty {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 8) {
+                            ForEach(companionManager.chatMessages) { message in
+                                chatBubble(message: message)
+                                    .id(message.id)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 200)
+                    .onChange(of: companionManager.chatMessages.count) { _ in
+                        if let last = companionManager.chatMessages.last {
+                            withAnimation {
+                                proxy.scrollTo(last.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Loading indicator
+            if companionManager.isChatLoading {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                    Text("Thinking...")
+                        .font(.system(size: 11))
+                        .foregroundColor(DS.Colors.textTertiary)
+                }
+            }
+
+            // Input field
+            HStack(spacing: 8) {
+                TextField("Ask about billing...", text: $chatInput)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
+                    .foregroundColor(DS.Colors.textPrimary)
+                    .onSubmit {
+                        sendChatMessage()
+                    }
+
+                Button(action: {
+                    sendChatMessage()
+                }) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(
+                            chatInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWaitingForResponse
+                            ? DS.Colors.textTertiary
+                            : DS.Colors.accent
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(chatInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWaitingForResponse)
+                .pointerCursor()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: DS.CornerRadius.medium, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.CornerRadius.medium, style: .continuous)
+                    .stroke(DS.Colors.borderSubtle, lineWidth: 0.5)
+            )
+        }
+    }
+
+    private func chatBubble(message: CompanionManager.ChatMessage) -> some View {
+        let isUser = message.role == "user"
+        return HStack {
+            if isUser { Spacer(minLength: 40) }
+
+            Text(message.content)
+                .font(.system(size: 12))
+                .foregroundColor(isUser ? DS.Colors.textOnAccent : DS.Colors.textPrimary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(isUser ? DS.Colors.accent : Color.white.opacity(0.08))
+                )
+                .textSelection(.enabled)
+
+            if !isUser { Spacer(minLength: 40) }
+        }
+    }
+
+    private func sendChatMessage() {
+        let text = chatInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        chatInput = ""
+        isWaitingForResponse = true
+        companionManager.sendChatMessage(text)
+
+        // Watch for response completion
+        Task {
+            while companionManager.isChatLoading {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+            }
+            isWaitingForResponse = false
+        }
     }
 
     // MARK: - DM Farza Button
