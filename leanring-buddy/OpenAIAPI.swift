@@ -7,14 +7,14 @@ import Foundation
 
 /// OpenAI API helper for vision analysis
 class OpenAIAPI {
-    private let apiKey: String
+    private var apiKey: String
     private let apiURL: URL
-    private let model: String
+    var model: String
     private let session: URLSession
 
-    init(apiKey: String, model: String = "gpt-5.2-2025-12-11") {
+    init(apiKey: String, model: String = "gpt-4.1", apiURL: String = "https://api.openai.com/v1/chat/completions") {
         self.apiKey = apiKey
-        self.apiURL = URL(string: "https://api.openai.com/v1/chat/completions")!
+        self.apiURL = URL(string: apiURL)!
         self.model = model
 
         // Use .default instead of .ephemeral so TLS session tickets are cached.

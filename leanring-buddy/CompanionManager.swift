@@ -68,17 +68,24 @@ final class CompanionManager: ObservableObject {
     // Response text is now displayed inline on the cursor overlay via
     // streamingResponseText, so no separate response overlay manager is needed.
 
-    /// Base URL for the Cloudflare Worker proxy. All API requests route
-    /// through this so keys never ship in the app binary.
-    private static let workerBaseURL = "https://your-worker-name.your-subdomain.workers.dev"
+    /// Base URL for the Altair BFF. All API requests route through the BFF
+    /// which proxies to Azure AI Foundry. No Cloudflare Worker needed.
+    private static let bffBaseURL = UserDefaults.standard.string(forKey: "bffBaseURL") ?? "http://localhost:3000/api"
 
-    private lazy var claudeAPI: ClaudeAPI = {
-        return ClaudeAPI(proxyURL: "\(Self.workerBaseURL)/chat", model: selectedModel)
+    private lazy var openAIAPI: OpenAIAPI = {
+        // JWT token is injected by setBffAuthToken() after login
+        let token = UserDefaults.standard.string(forKey: "bffAuthToken") ?? ""
+        return OpenAIAPI(apiKey: token, model: selectedModel, apiURL: "\(Self.bffBaseURL)/kb/chat")
     }()
 
     private lazy var elevenLabsTTSClient: ElevenLabsTTSClient = {
-        return ElevenLabsTTSClient(proxyURL: "\(Self.workerBaseURL)/tts")
+        return ElevenLabsTTSClient(proxyURL: "\(Self.bffBaseURL)/tts")
     }()
+
+    /// Knowledge base context fetched from the altair-kb repo on GitHub.
+    /// Cached locally and refreshed daily.
+    private var kbContext: String = ""
+    private var kbContextLastFetched: Date?
 
     /// Conversation history so Claude remembers prior exchanges within a session.
     /// Each entry is the user's transcript and Claude's response.
@@ -107,13 +114,19 @@ final class CompanionManager: ObservableObject {
     /// Used by the panel to show accurate status text ("Active" vs "Ready").
     @Published private(set) var isOverlayVisible: Bool = false
 
-    /// The Claude model used for voice responses. Persisted to UserDefaults.
-    @Published var selectedModel: String = UserDefaults.standard.string(forKey: "selectedClaudeModel") ?? "claude-sonnet-4-6"
+    /// The Foundry model used for responses. Persisted to UserDefaults.
+    @Published var selectedModel: String = UserDefaults.standard.string(forKey: "selectedClaudeModel") ?? "gpt-4.1"
 
     func setSelectedModel(_ model: String) {
         selectedModel = model
         UserDefaults.standard.set(model, forKey: "selectedClaudeModel")
-        claudeAPI.model = model
+        openAIAPI.model = model
+    }
+
+    /// Set the BFF auth token (JWT) for API requests.
+    func setBffAuthToken(_ token: String) {
+        UserDefaults.standard.set(token, forKey: "bffAuthToken")
+        openAIAPI = OpenAIAPI(apiKey: token, model: selectedModel, apiURL: "\(Self.bffBaseURL)/kb/chat")
     }
 
     /// User preference for whether the Clicky cursor should be shown.
@@ -126,7 +139,11 @@ final class CompanionManager: ObservableObject {
     /// Whether Clicky is in tutor mode — proactively guiding the user
     /// through whatever software they're using by periodically screenshotting
     /// and sending observations to Claude.
-    @Published var isTutorModeEnabled: Bool = UserDefaults.standard.bool(forKey: "isTutorModeEnabled")
+    /// Tutor mode defaults to OFF. Users can enable it in the panel.
+    @Published var isTutorModeEnabled: Bool = {
+        // Default to false if never set (bool(forKey:) returns false for missing keys, which is what we want)
+        return UserDefaults.standard.bool(forKey: "isTutorModeEnabled")
+    }()
 
     func setTutorModeEnabled(_ enabled: Bool) {
         isTutorModeEnabled = enabled
@@ -203,9 +220,12 @@ final class CompanionManager: ObservableObject {
         bindVoiceStateObservation()
         bindAudioPowerLevel()
         bindShortcutTransitions()
-        // Eagerly touch the Claude API so its TLS warmup handshake completes
+        // Eagerly touch the API so its TLS warmup handshake completes
         // well before the onboarding demo fires at ~40s into the video.
-        _ = claudeAPI
+        _ = openAIAPI
+
+        // Fetch KB context for knowledge-base-powered answers
+        fetchKBContextIfNeeded()
 
         // If the user already completed onboarding AND all permissions are
         // still granted, show the cursor overlay immediately. If permissions
@@ -569,6 +589,48 @@ final class CompanionManager: ObservableObject {
         }
     }
 
+    // MARK: - KB Context
+
+    /// Fetches the external knowledge base index from the altair-kb GitHub repo.
+    /// Caches locally and refreshes daily.
+    func fetchKBContextIfNeeded() {
+        let needsRefresh = kbContextLastFetched == nil ||
+            Date().timeIntervalSince(kbContextLastFetched!) > 86400 // 24 hours
+
+        guard needsRefresh else { return }
+
+        Task {
+            do {
+                let url = URL(string: "https://api.github.com/repos/S7-Lab-Health/altair-kb/contents/external/index.md")!
+                var request = URLRequest(url: url)
+                request.setValue("application/vnd.github.raw+json", forHTTPHeaderField: "Accept")
+                let (data, _) = try await URLSession.shared.data(for: request)
+                if let content = String(data: data, encoding: .utf8) {
+                    kbContext = content
+                    kbContextLastFetched = Date()
+                    print("📚 KB context fetched: \(content.count) chars")
+                }
+            } catch {
+                print("⚠️ Failed to fetch KB context: \(error)")
+            }
+        }
+    }
+
+    /// Builds the system prompt with KB context injected.
+    private var systemPromptWithKB: String {
+        var prompt = Self.companionVoiceResponseSystemPrompt
+        if !kbContext.isEmpty {
+            prompt += """
+
+            knowledge base:
+            you have access to the altair medical billing knowledge base. when the user asks about billing, denials, payers, modifiers, or insurance topics, use the following article index to inform your answers. cite article names when relevant.
+
+            \(kbContext)
+            """
+        }
+        return prompt
+    }
+
     // MARK: - Companion Prompt
 
     private static let companionVoiceResponseSystemPrompt = """
@@ -667,14 +729,11 @@ final class CompanionManager: ObservableObject {
                     (userPlaceholder: entry.userTranscript, assistantResponse: entry.assistantResponse)
                 }
 
-                let (fullResponseText, _) = try await claudeAPI.analyzeImageStreaming(
+                let (fullResponseText, _) = try await openAIAPI.analyzeImage(
                     images: labeledImages,
-                    systemPrompt: Self.companionVoiceResponseSystemPrompt,
+                    systemPrompt: systemPromptWithKB,
                     conversationHistory: historyForAPI,
-                    userPrompt: transcript,
-                    onTextChunk: { _ in
-                        // No streaming text display — spinner stays until TTS plays
-                    }
+                    userPrompt: transcript
                 )
 
                 guard !Task.isCancelled else { return }
@@ -871,12 +930,11 @@ final class CompanionManager: ObservableObject {
                 (userPlaceholder: entry.userTranscript, assistantResponse: entry.assistantResponse)
             }
 
-            let (responseText, _) = try await claudeAPI.analyzeImageStreaming(
+            let (responseText, _) = try await openAIAPI.analyzeImage(
                 images: labeledImages,
                 systemPrompt: Self.tutorModeSystemPrompt,
                 conversationHistory: historyForAPI,
-                userPrompt: "observe the screen and guide me",
-                onTextChunk: { _ in }
+                userPrompt: "observe the screen and guide me"
             )
 
             guard !Task.isCancelled else { return }
@@ -1214,11 +1272,10 @@ final class CompanionManager: ObservableObject {
                 let dimensionInfo = " (image dimensions: \(cursorScreenCapture.screenshotWidthInPixels)x\(cursorScreenCapture.screenshotHeightInPixels) pixels)"
                 let labeledImages = [(data: cursorScreenCapture.imageData, label: cursorScreenCapture.label + dimensionInfo)]
 
-                let (fullResponseText, _) = try await claudeAPI.analyzeImageStreaming(
+                let (fullResponseText, _) = try await openAIAPI.analyzeImage(
                     images: labeledImages,
                     systemPrompt: Self.onboardingDemoSystemPrompt,
-                    userPrompt: "look around my screen and find something interesting to point at",
-                    onTextChunk: { _ in }
+                    userPrompt: "look around my screen and find something interesting to point at"
                 )
 
                 let parseResult = Self.parsePointingCoordinates(from: fullResponseText)
