@@ -4,3 +4,17 @@ compatibility_date = "2024-01-01"
 
 [vars]
 ELEVENLABS_VOICE_ID = "kPzsL2i3teMYv0FxEYQ6"
+FOUNDRY_FAST_MODEL = "gpt-4o-mini"
+FOUNDRY_MAIN_MODEL = "gpt-4o"
+
+[[kv_namespaces]]
+binding = "KB_FLOWS"
+# Run: wrangler kv namespace create KB_FLOWS
+# Then paste the returned id below
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Secrets (set via: wrangler secret put <NAME>)
+# AZURE_FOUNDRY_ENDPOINT  — e.g. https://<project>.services.ai.azure.com
+# AZURE_FOUNDRY_KEY
+# ASSEMBLYAI_API_KEY
+# ELEVENLABS_API_KEY
