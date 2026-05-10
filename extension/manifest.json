@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Altair Clicky",
+  "version": "0.1.0",
+  "description": "AI-powered onboarding guide for Altair medical billing",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "offscreen",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://altair-health.com/*",
+    "https://beta.altair-health.com/*"
+  ],
+  "background": {
+    "service_worker": "dist/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://altair-health.com/*",
+        "https://beta.altair-health.com/*"
+      ],
+      "js": ["dist/content.js"],
+      "css": ["dist/styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
+}
