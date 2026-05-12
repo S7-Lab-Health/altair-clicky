@@ -1,0 +1,47 @@
+---
+title: "Open the Altair AI Panel Anywhere in the App"
+kind: flow
+slug: open-altair-panel
+aliases: [open ai panel, altair assistant, ask ai, chat with altair, altair chat, open panel]
+entry_screen: /hub
+tags: [altair, ai, navigation, assistance]
+estimated_steps: 3
+sources:
+  - "external/features/navigation.md"
+---
+
+## Steps
+
+### step 1
+id: open-panel
+instruction: Open the Altair AI panel using any of three methods:
+  1. Click the glowing orb in the bottom-right corner of the screen
+  2. Press Cmd+J (Mac) or Ctrl+J (Windows) from anywhere
+  3. Click "Ask Altair" on any work item (opens pre-filled with that item's context)
+success_criteria: The Altair panel is open. You can see the Conversations tab with a chat input box at the bottom. A context indicator shows what record Altair is focused on.
+anchor: "Altair orb"
+on_success: next
+on_stuck: The glowing orb is a small animated circle in the lower-right corner. Its color reflects Altair's status: blue = working, green = done, amber = needs attention, red = error.
+
+### step 2
+id: understand-panel-modes
+instruction: The panel opens as a floating popup by default. Click the expand icon (two outward arrows) in the panel header to switch to full-height sidebar mode if you want more space. You can also drag the floating panel anywhere on screen.
+success_criteria: The panel is in your preferred display mode.
+anchor: "expand icon"
+on_success: next
+on_stuck: The expand icon is in the panel header bar.
+
+### step 3
+id: start-conversation
+instruction: Type a question or request in the chat input box at the bottom and press Enter. Altair already knows what page you're on and can answer contextually without you having to paste record numbers.
+success_criteria: Altair has responded to your question.
+anchor: "chat input"
+on_success: completion
+on_stuck: Click in the text box at the bottom of the panel, type, and press Enter.
+
+## Completion Message
+altair is open and ready. ask anything — denial codes, billing concepts, claim status, what to do next. close the panel anytime with the × button or Cmd+J / Ctrl+J.
+
+## Related Flows
+- ask-altair-about-item
+- start-work-day

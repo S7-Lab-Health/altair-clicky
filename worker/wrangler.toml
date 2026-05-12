@@ -1,17 +1,19 @@
 name = "clicky-proxy"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
+workers_dev = true
 
 [vars]
 ELEVENLABS_VOICE_ID = "kPzsL2i3teMYv0FxEYQ6"
-FOUNDRY_FAST_MODEL = "gpt-4o-mini"
-FOUNDRY_MAIN_MODEL = "gpt-4o"
+FOUNDRY_FAST_MODEL = "Kimi-K2.5"
+FOUNDRY_MAIN_MODEL = "Kimi-K2.5"
+# CLICKY_API_KEY is set via: wrangler secret put CLICKY_API_KEY
 
 [[kv_namespaces]]
 binding = "KB_FLOWS"
 # Run: wrangler kv namespace create KB_FLOWS
 # Then paste the returned id below
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "874143f0c7b64c0c88e3f79388aa1128"
 
 # Secrets (set via: wrangler secret put <NAME>)
 # AZURE_FOUNDRY_ENDPOINT  — e.g. https://<project>.services.ai.azure.com

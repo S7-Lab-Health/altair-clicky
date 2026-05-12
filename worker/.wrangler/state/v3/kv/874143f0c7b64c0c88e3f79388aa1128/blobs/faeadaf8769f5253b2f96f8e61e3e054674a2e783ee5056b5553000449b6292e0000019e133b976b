@@ -1,0 +1,68 @@
+---
+title: "Review and Resolve Batch Scrubbing Issues"
+kind: flow
+slug: review-batch-edits
+aliases: [batch review, scrub review, fix scrub issues, resolve edits, review batch]
+entry_screen: /batches/{batchId}
+tags: [batches, scrubbing, claims, errors]
+estimated_steps: 6
+sources:
+  - "external/features/batches.md"
+---
+
+## Steps
+
+### step 1
+id: open-batch
+instruction: On the Batches page, click on the batch that has finished processing — it shows "Needs Review" status.
+success_criteria: You are on the Batch Review page. The header shows the batch name, status, and a claim count summary broken down by severity (Clean, Advisory, Warning, Blocking).
+anchor: "Needs Review"
+on_success: next
+on_stuck: Find a batch card with a "Needs Review" status badge and click on it.
+
+### step 2
+id: read-claim-summary
+instruction: Review the claim severity summary in the header to understand the scope — how many claims are clean, have advisories, warnings, or blocking issues.
+success_criteria: You can see a breakdown of claims by severity (e.g., "39 Clean, 5 Advisory, 3 Blocking").
+anchor: "claim count"
+on_success: next
+on_stuck: The claim counts appear in the header area of the Batch Review page as colored badges.
+
+### step 3
+id: click-review-edits
+instruction: Click "Review Edits" in the four-step workflow checklist to enter the edit carousel.
+success_criteria: The edit carousel has opened showing the first flagged issue — which claims are affected, why it was flagged, and the likely fix.
+anchor: "Review Edits"
+on_success: next
+on_stuck: The "Review Edits" button is part of a four-step workflow checklist on the Batch Review page.
+
+### step 4
+id: navigate-through-issues
+instruction: Read each issue carefully and use the carousel navigation to move through all flagged issues. Use the Altair chat sidebar if you need help understanding any edit.
+success_criteria: You have reviewed all flagged issues in the carousel.
+anchor: "next issue"
+on_success: next
+on_stuck: Use the arrow buttons on the carousel to navigate between issues.
+
+### step 5
+id: fix-claims-externally
+instruction: Make the necessary corrections in your practice management system and export a new 837 file with those fixes applied.
+success_criteria: You have a corrected 837 file ready to upload.
+anchor: "Fix in your practice management system"
+on_success: next
+on_stuck: This step happens outside Altair in your billing software. Make the corrections, export a new 837, then return here.
+
+### step 6
+id: reupload-corrected-batch
+instruction: Click "Re-upload corrected batch" (Step 3 of the workflow checklist) and upload your corrected file.
+success_criteria: Altair compares the new file to the original and a summary card shows what changed. Any edits your corrections addressed are automatically resolved.
+anchor: "Re-upload corrected batch"
+on_success: completion
+on_stuck: The re-upload button is in Step 3 of the workflow checklist on the Batch Review page.
+
+## Completion Message
+nice work — altair compared your corrected file and resolved the issues you fixed. if any blocking issues remain, address them in step 4 before releasing. want me to walk you through releasing the batch?
+
+## Related Flows
+- upload-first-batch
+- release-batch

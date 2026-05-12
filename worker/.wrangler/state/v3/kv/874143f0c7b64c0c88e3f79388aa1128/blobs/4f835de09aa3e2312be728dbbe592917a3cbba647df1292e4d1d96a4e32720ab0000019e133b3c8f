@@ -1,0 +1,45 @@
+---
+title: "Use Ask Altair to Get Help with a Work Item"
+kind: flow
+slug: ask-altair-about-item
+aliases: [ask altair, work item help, get guidance, get ai help, ask for suggestion]
+entry_screen: /hub
+tags: [altair, work-queue, ai-assistance, help]
+estimated_steps: 3
+sources:
+  - "external/features/billing-hub.md"
+  - "external/features/navigation.md"
+---
+
+## Steps
+
+### step 1
+id: find-ask-altair-button
+instruction: On any active work item card in the Work Queue, find and click the "Ask Altair" button.
+success_criteria: The Altair AI panel has opened, pre-filled with context about that specific work item (title, description, linked record).
+anchor: "Ask Altair"
+on_success: next
+on_stuck: Every active work item has an "Ask Altair" option — a button or link on the item card.
+
+### step 2
+id: wait-for-altair-response
+instruction: Altair processes the work item context automatically. You'll see "Altair is on it..." briefly, then a response with analysis or suggested next steps.
+success_criteria: Altair has responded with guidance specific to the work item.
+anchor: "Altair response"
+on_success: next
+on_stuck: Wait a moment — Altair processes the context and responds automatically.
+
+### step 3
+id: ask-follow-up-questions
+instruction: Ask follow-up questions in the chat to get deeper guidance. For example: "Why was this claim denied?", "Should I appeal or correct?", "Draft an appeal letter for this denial", "What's the filing deadline for this payer?"
+success_criteria: You have the information you need to take action on the work item.
+anchor: "chat input"
+on_success: completion
+on_stuck: Type in the chat box at the bottom of the Altair panel and press Enter.
+
+## Completion Message
+altair has given you guidance. take action on the work item using what you've learned, or keep the conversation going if you have more questions. your conversation history is saved so you can come back to it.
+
+## Related Flows
+- start-work-day
+- open-altair-panel

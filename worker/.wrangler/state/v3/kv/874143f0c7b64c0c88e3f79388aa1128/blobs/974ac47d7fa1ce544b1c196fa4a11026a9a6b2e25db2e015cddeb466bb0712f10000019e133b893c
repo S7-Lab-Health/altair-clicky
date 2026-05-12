@@ -1,0 +1,52 @@
+---
+title: "Mark a Denial as Corrected and Resubmit"
+kind: flow
+slug: resolve-denial-corrected
+aliases: [correct denial, fix claim, resubmit corrected claim, mark corrected, resubmit]
+entry_screen: /payments-denials
+tags: [denials, claims, corrections, resubmit]
+estimated_steps: 4
+sources:
+  - "external/features/denials.md"
+---
+
+## Steps
+
+### step 1
+id: open-denial-for-correction
+instruction: Open the denial you want to correct (from Payments & Denials > Denials tab). The encounter detail page shows the denial card with action buttons.
+success_criteria: The denial card is visible with action buttons including "Correct," "Appeal," and "Write Off."
+anchor: "Correct"
+on_success: next
+on_stuck: Use the review-denial flow to navigate to the denial first.
+
+### step 2
+id: click-correct
+instruction: Click the "Correct" button on the denial card.
+success_criteria: A form or dialog has appeared asking for details about the correction (optional notes field).
+anchor: "Correct"
+on_success: next
+on_stuck: The "Correct" button is one of the action buttons on the denial card.
+
+### step 3
+id: add-notes-and-submit
+instruction: Optionally enter notes describing what you corrected (e.g., "Added missing modifier 59 to CPT 27447"). Click "Mark Corrected" to save.
+success_criteria: The denial status has changed to "Corrected."
+anchor: "Mark Corrected"
+on_success: next
+on_stuck: The notes field is optional. Click the confirmation button to save.
+
+### step 4
+id: resubmit-corrected-claim
+instruction: Export a corrected 837 file from your practice management system with the fix applied, then upload it as a new batch in Altair.
+success_criteria: The corrected claim has been uploaded in a new batch and is being processed.
+anchor: "Upload Batch (837)"
+on_success: completion
+on_stuck: Go to the Batches page, click "Upload Batch (837)," and upload the corrected EDI file.
+
+## Completion Message
+the denial is marked corrected and altair will watch for the resubmitted claim in the next ERA. once the payer processes it and sends payment, the encounter updates automatically.
+
+## Related Flows
+- review-denial
+- upload-first-batch

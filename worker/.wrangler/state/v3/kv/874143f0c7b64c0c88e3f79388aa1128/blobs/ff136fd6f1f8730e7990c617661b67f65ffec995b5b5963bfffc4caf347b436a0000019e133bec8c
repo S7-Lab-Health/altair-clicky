@@ -1,0 +1,43 @@
+---
+title: "Use Cmd+K to Navigate Quickly with the Command Palette"
+kind: flow
+slug: use-command-palette
+aliases: [command palette, quick nav, keyboard search, cmd+k, ctrl+k, search app]
+entry_screen: /hub
+tags: [navigation, keyboard-shortcuts, search]
+estimated_steps: 3
+sources:
+  - "external/features/navigation.md"
+---
+
+## Steps
+
+### step 1
+id: open-command-palette
+instruction: From anywhere in Altair, press Cmd+K (Mac) or Ctrl+K (Windows) to open the command palette.
+success_criteria: A search box appears in the center of the screen labeled "Search..." or "Go to..." with suggestions below it.
+anchor: "command palette"
+on_success: next
+on_stuck: Press Cmd+K on Mac or Ctrl+K on Windows. It opens immediately from any page.
+
+### step 2
+id: type-search-query
+instruction: Type what you're looking for — a page name (Batches, Payments, Prior Auth), a patient name, an encounter number, a payer name, or a feature name (Denials, Memory, Scrub Rules). Results update in real-time.
+success_criteria: Matching results appear below showing pages, patients, encounters, or features.
+anchor: "search box"
+on_success: next
+on_stuck: Start typing anything. Results appear as you type.
+
+### step 3
+id: select-result
+instruction: Click a result or use the arrow keys to highlight it and press Enter to navigate there.
+success_criteria: The command palette closes and you are now on the selected screen or record.
+anchor: "result"
+on_success: completion
+on_stuck: Click on any result in the list.
+
+## Completion Message
+that's the fastest way to jump anywhere in altair without clicking through the sidebar. use it whenever you need to find a patient, batch, or feature quickly.
+
+## Related Flows
+- start-work-day

@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Altair Clicky",
+  "version": "0.1.0",
+  "description": "AI-powered onboarding guide for Altair medical billing",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAztaoYuwvP/3wosya23XSyKfjjiAzOHqK51jb2EQkV0NfexAb/9rx89Y0f5YAAJu4rAAN9KwiXSuQfis//OVNyt/tD9e2PmFgCU9d1HipXnbyYuDUrWOSbKa/oxzboLjxJYNo28K8q9GT2XECJJ23yoMEJ5q3wIXfUKm0bP56+Egklfh3EM3yYEOveduJNhyAs6GwAhtZjr64AH7algT/dEtSdRg1G2zGjGyIVf6EaRT+V0992FlR2VJg1ZN4/Z+zetgNAEuw75D0Xj7MgxbxqvnVpcvfnvVWO+gYnAwg5MUFKxfOq0GKaw3Os4umOcUKHQYL7/zVWSR/sxv+NuetpwIDAQAB",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "offscreen",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://altair-health.com/*",
+    "https://beta.altair-health.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://altair-health.com/*",
+        "https://beta.altair-health.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
+}

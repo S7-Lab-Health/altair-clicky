@@ -9,8 +9,6 @@
  * - Detect URL changes and notify background for Tutor Mode
  */
 
-declare const WORKER_URL: string;
-
 import type { ContentMessage, BackgroundMessage } from './types';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -26,59 +24,141 @@ let urlChangeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
-injectFloatingButton();
-patchHistoryForUrlDetection();
+// Only inject UI if the user has an active Altair session.
+// Runs in the page context so the browser's session cookies are sent automatically.
+(async () => {
+  try {
+    const resp = await fetch(`${window.location.origin}/api/users/me`, { credentials: 'include' });
+    if (!resp.ok) return;
+  } catch {
+    return;
+  }
+  injectFloatingButton();
+  injectTextPanel();
+  patchHistoryForUrlDetection();
+})();
 
 // ─── Messages from background ─────────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((message: ContentMessage) => {
   switch (message.type) {
     case 'SHOW_STEP':
-    case 'FLOW_COMPLETE':
-      showSpeechBubble(message.speechText);
+      appendStepMessage(message.speechText, message.hasNext);
       playAudio(message.audioDataUrl);
       if (message.anchor) {
         waitForAnchor(message.anchor, 3000).then((el) => {
-          if (el) highlightElement(el);
+          if (el) {
+            highlightElement(el);
+            if (message.autoClick) setTimeout(() => (el as HTMLElement).click(), 500);
+          }
+        });
+      }
+      break;
+
+    case 'FLOW_DONE':
+      appendStepMessage(message.speechText, false);
+      playAudio(message.audioDataUrl);
+      if (message.anchor) {
+        waitForAnchor(message.anchor, 3000).then((el) => {
+          if (el) {
+            highlightElement(el);
+            if (message.autoClick) setTimeout(() => (el as HTMLElement).click(), 500);
+          }
         });
       }
       break;
 
     case 'SHOW_MESSAGE':
-      showSpeechBubble(message.speechText);
+      appendStepMessage(message.speechText, false);
       playAudio(message.audioDataUrl);
       break;
 
     case 'SHOW_WELCOME':
-      showSpeechBubble("Hi! I'm Clicky — your Altair guide. Hold the mic button to ask me anything, or I'll offer tips as you navigate.");
+      appendStepMessage("Hi! I'm Clicky — your Altair guide. Click the button to ask me anything.", false);
       break;
 
     case 'CLEAR_OVERLAY':
-      clearOverlay();
+      hideClickyPanel();
       break;
   }
 });
 
-// ─── Floating PTT button ──────────────────────────────────────────────────────
+// ─── Floating button (chat toggle) ───────────────────────────────────────────
 
 function injectFloatingButton(): void {
   if (document.getElementById('clicky-trigger')) return;
 
   const button = document.createElement('button');
   button.id = 'clicky-trigger';
-  button.setAttribute('aria-label', 'Ask Clicky — hold to speak');
-  button.title = 'Hold to speak to Clicky';
+  button.setAttribute('aria-label', 'Ask Clicky');
+  button.title = 'Ask Clicky';
+  // Chat bubble icon
   button.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M12 1a5 5 0 0 1 5 5v6a5 5 0 0 1-10 0V6a5 5 0 0 1 5-5zm-1 17.93V21H9v2h6v-2h-2v-2.07A8 8 0 0 0 20 12h-2a6 6 0 0 1-12 0H4a8 8 0 0 0 7 7.93z"/>
+    <path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
   </svg>`;
 
-  button.addEventListener('mousedown', (e) => { e.preventDefault(); startRecording(); });
-  button.addEventListener('mouseup', stopRecording);
-  button.addEventListener('mouseleave', stopRecording);
-  button.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); }, { passive: false });
-  button.addEventListener('touchend', stopRecording);
+  button.addEventListener('click', toggleTextPanel);
 
   document.body.appendChild(button);
+}
+
+// ─── Text input panel ─────────────────────────────────────────────────────────
+
+function injectTextPanel(): void {
+  if (document.getElementById('clicky-text-panel')) return;
+
+  const panel = document.createElement('div');
+  panel.id = 'clicky-text-panel';
+  panel.setAttribute('aria-label', 'Ask Clicky');
+
+  const input = document.createElement('input');
+  input.id = 'clicky-text-input';
+  input.type = 'text';
+  input.placeholder = 'Ask Clicky anything…';
+  input.setAttribute('aria-label', 'Ask Clicky');
+
+  const sendBtn = document.createElement('button');
+  sendBtn.id = 'clicky-send-btn';
+  sendBtn.setAttribute('aria-label', 'Send');
+  sendBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
+  </svg>`;
+
+  const submitText = () => {
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    hideTextPanel();
+    try {
+      const message: BackgroundMessage = { type: 'TRANSCRIPT_READY', text };
+      chrome.runtime.sendMessage(message);
+    } catch {
+      appendStepMessage('Extension reloaded — please refresh this page to use Clicky.', false);
+    }
+  };
+
+  sendBtn.addEventListener('click', submitText);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitText(); });
+
+  panel.appendChild(input);
+  panel.appendChild(sendBtn);
+  document.body.appendChild(panel);
+}
+
+function toggleTextPanel(): void {
+  const panel = document.getElementById('clicky-text-panel');
+  if (!panel) return;
+  const isVisible = panel.classList.contains('clicky-panel-visible');
+  if (isVisible) {
+    hideTextPanel();
+  } else {
+    panel.classList.add('clicky-panel-visible');
+    setTimeout(() => document.getElementById('clicky-text-input')?.focus(), 50);
+  }
+}
+
+function hideTextPanel(): void {
+  document.getElementById('clicky-text-panel')?.classList.remove('clicky-panel-visible');
 }
 
 // ─── Mic capture + AssemblyAI streaming ──────────────────────────────────────
@@ -90,10 +170,12 @@ async function startRecording(): Promise<void> {
   setButtonState('recording');
 
   try {
-    // Get a short-lived AssemblyAI token from the Worker
-    const tokenResponse = await fetch(`${WORKER_URL}/transcribe-token`);
-    if (!tokenResponse.ok) throw new Error('Failed to get transcription token');
-    const { token } = await tokenResponse.json() as { token: string };
+    // Get a short-lived AssemblyAI token via background (background adds auth header)
+    const tokenData = await chrome.runtime.sendMessage(
+      { type: 'GET_TRANSCRIBE_TOKEN' } satisfies BackgroundMessage
+    ) as { token: string } | null;
+    if (!tokenData) throw new Error('Failed to get transcription token — please sign in');
+    const { token } = tokenData;
 
     // Open AssemblyAI streaming WebSocket
     const wsUrl = `wss://streaming.assemblyai.com/v3/ws?token=${token}&sample_rate=16000&encoding=pcm_s16le`;
@@ -192,28 +274,96 @@ function waitForAnchor(name: string, timeoutMs: number): Promise<Element | null>
 
 function highlightElement(el: Element): void {
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  el.classList.add('clicky-highlight');
-  setTimeout(() => el.classList.remove('clicky-highlight'), 3500);
+  const rect = el.getBoundingClientRect();
+  const ring = document.createElement('div');
+  ring.className = 'clicky-highlight';
+  ring.style.cssText = `position:fixed;top:${rect.top - 4}px;left:${rect.left - 4}px;width:${rect.width + 8}px;height:${rect.height + 8}px;pointer-events:none;z-index:2147483646;border-radius:8px;`;
+  document.body.appendChild(ring);
+  setTimeout(() => ring.remove(), 8000);
 }
 
-// ─── Speech bubble overlay ────────────────────────────────────────────────────
+// ─── Chat panel ───────────────────────────────────────────────────────────────
 
-function showSpeechBubble(text: string): void {
-  let bubble = document.getElementById('clicky-bubble');
-  if (!bubble) {
-    bubble = document.createElement('div');
-    bubble.id = 'clicky-bubble';
-    document.body.appendChild(bubble);
+function ensureClickyPanel(): HTMLElement {
+  let panel = document.getElementById('clicky-panel');
+  if (panel) return panel;
+
+  panel = document.createElement('div');
+  panel.id = 'clicky-panel';
+
+  const header = document.createElement('div');
+  header.id = 'clicky-panel-header';
+
+  const label = document.createElement('span');
+  label.textContent = 'Clicky';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.id = 'clicky-panel-close';
+  closeBtn.setAttribute('aria-label', 'Close Clicky');
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', hideClickyPanel);
+
+  header.appendChild(label);
+  header.appendChild(closeBtn);
+
+  const messages = document.createElement('div');
+  messages.id = 'clicky-panel-messages';
+
+  panel.appendChild(header);
+  panel.appendChild(messages);
+  document.body.appendChild(panel);
+
+  return panel;
+}
+
+function appendStepMessage(text: string, hasNext: boolean): void {
+  const panel = ensureClickyPanel();
+  const messages = document.getElementById('clicky-panel-messages')!;
+
+  // Remove any lingering Next button from a previous message
+  messages.querySelectorAll('.clicky-next-btn').forEach((btn) => btn.remove());
+
+  const msgEl = document.createElement('div');
+  msgEl.className = 'clicky-message';
+
+  const p = document.createElement('p');
+  p.className = 'clicky-message-text';
+  p.textContent = text;
+  msgEl.appendChild(p);
+
+  if (hasNext) {
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'clicky-next-btn';
+    nextBtn.textContent = 'Next →';
+    nextBtn.addEventListener('click', () => {
+      nextBtn.remove();
+      try {
+        const msg: BackgroundMessage = { type: 'STEP_COMPLETE' };
+        chrome.runtime.sendMessage(msg);
+      } catch {
+        appendStepMessage('Extension reloaded — please refresh this page to continue.', false);
+      }
+    });
+    msgEl.appendChild(nextBtn);
   }
-  bubble.textContent = text;
-  bubble.classList.add('clicky-bubble-visible');
 
-  // Auto-dismiss after 10 seconds
-  setTimeout(() => bubble?.classList.remove('clicky-bubble-visible'), 10_000);
+  messages.appendChild(msgEl);
+  panel.classList.add('clicky-panel-chat-visible');
+  messages.scrollTop = messages.scrollHeight;
 }
 
-function clearOverlay(): void {
-  document.getElementById('clicky-bubble')?.remove();
+function hideClickyPanel(): void {
+  const panel = document.getElementById('clicky-panel');
+  if (!panel) return;
+  panel.classList.remove('clicky-panel-chat-visible');
+  setTimeout(() => {
+    const messages = document.getElementById('clicky-panel-messages');
+    if (messages) messages.innerHTML = '';
+    try {
+      const msg: BackgroundMessage = { type: 'CLOSE_FLOW' };
+      chrome.runtime.sendMessage(msg);
+    } catch { /* ignore */ }
+  }, 220);
 }
 
 // ─── Audio playback ───────────────────────────────────────────────────────────

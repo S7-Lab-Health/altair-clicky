@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Altair Clicky</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 280px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      color: #1e293b;
+      background: #fff;
+    }
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h2::before {
+      content: '';
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+    .section { margin-bottom: 14px; }
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    #active-flow {
+      display: none;
+      padding: 6px 10px;
+      background: #fef9c3;
+      border: 1px solid #fde047;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #854d0e;
+      margin-bottom: 12px;
+    }
+    #onboarding-progress {
+      display: none;
+      padding: 5px 10px;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #166534;
+      margin-bottom: 12px;
+    }
+    .primary-btn {
+      display: block;
+      width: 100%;
+      padding: 9px 12px;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s;
+      margin-bottom: 14px;
+    }
+    .primary-btn:hover { background: #2563eb; }
+    .flow-button {
+      display: block;
+      width: 100%;
+      padding: 7px 10px;
+      margin-bottom: 4px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 13px;
+      color: #1e293b;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .flow-button:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .toggle-row label { cursor: pointer; font-size: 13px; }
+    input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <h2>Altair Clicky</h2>
+
+  <div id="active-flow"></div>
+  <div id="onboarding-progress"></div>
+
+  <button class="primary-btn" id="start-onboarding">▶ Start Onboarding</button>
+
+  <div class="section">
+    <div class="section-label">Guided Flows</div>
+    <div id="flow-list"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Settings</div>
+    <div class="toggle-row">
+      <label for="tutor-toggle">Tutor mode</label>
+      <input type="checkbox" id="tutor-toggle" checked>
+    </div>
+    <div class="toggle-row">
+      <label for="voice-toggle">Voice responses</label>
+      <input type="checkbox" id="voice-toggle" checked>
+    </div>
+  </div>
+
+  <script src="dist/popup.js"></script>
+</body>
+</html>

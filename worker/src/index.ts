@@ -7,17 +7,19 @@
  *   GET  /flows             → List all flow slugs + aliases
  *   POST /tts               → ElevenLabs TTS API
  *   POST /transcribe-token  → AssemblyAI ephemeral token
+ *
+ * All routes (except OPTIONS preflight) require a valid Entra ID Bearer token.
  */
 
 export interface Env {
   AZURE_FOUNDRY_ENDPOINT: string;
   AZURE_FOUNDRY_KEY: string;
-  FOUNDRY_FAST_MODEL: string;
   FOUNDRY_MAIN_MODEL: string;
   ELEVENLABS_API_KEY: string;
   ELEVENLABS_VOICE_ID: string;
   ASSEMBLYAI_API_KEY: string;
   KB_FLOWS: KVNamespace;
+  CLICKY_API_KEY: string;
 }
 
 interface Message {
@@ -39,31 +41,43 @@ interface FlowIndexEntry {
   aliases: string[];
 }
 
-interface FlowIndex {
-  flows: FlowIndexEntry[];
-}
+// ─── CORS ─────────────────────────────────────────────────────────────────────
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Clicky-Api-Key',
 };
+
+// ─── System prompt ────────────────────────────────────────────────────────────
 
 const CLICKY_SYSTEM_PROMPT = `You are Clicky, an onboarding guide built into Altair, a medical billing platform.
 You help billing staff navigate the app through step-by-step guidance.
 Rules:
 - Be concise and friendly. One or two sentences per step maximum.
-- When you reference a UI element the user should interact with, append [ANCHOR:anchor-name] immediately after mentioning it.
-  Example: "Click Upload Batch [ANCHOR:upload-batch-button] in the top right corner."
-- When a guided flow step is complete, output STEP_COMPLETE on its own line.
+- When referencing a UI element, use one of two tokens immediately after naming it:
+  - [CLICK:anchor-name] — for navigation links, buttons that open dialogs, or any action Clicky can safely perform automatically. Clicky will highlight and click the element for the user.
+  - [ANCHOR:anchor-name] — for elements the user must interact with themselves (form fields, dropdowns, file pickers, confirm/submit buttons).
+  Example: "Click Payments & Denials [CLICK:Payments & Denials] in the sidebar."
+  Example: "Select your billing account [ANCHOR:Billing Account] from the dropdown."
+- When you have described a step the user needs to perform, output STEP_COMPLETE on its own line. The user will click "Next →" when ready for the next step.
+- When the entire guided flow is finished and there are no more steps, output FLOW_DONE on its own line instead of STEP_COMPLETE.
+- Output only the current step's instruction. Do not preview upcoming steps.
 - Never use markdown formatting — your responses are spoken aloud via text-to-speech.
-- If asked an off-topic question mid-flow, answer it briefly, then resume the flow.`;
+- If asked an off-topic question mid-flow, answer it briefly, then resume the flow.
+- CRITICAL: Follow the flow steps exactly as written. Never invent, add, or describe UI elements (buttons, filters, tabs, fields) that are not explicitly named in the flow step. If a step does not mention a filter, do not mention a filter.`;
+
+// ─── Main fetch handler ───────────────────────────────────────────────────────
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
+
+    // Validate API key on every non-OPTIONS request
+    const authResult = requireAuth(request, env);
+    if (authResult instanceof Response) return authResult;
 
     const url = new URL(request.url);
 
@@ -88,15 +102,31 @@ export default {
   },
 };
 
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+function requireAuth(request: Request, env: Env): true | Response {
+  const apiKey = request.headers.get('X-Clicky-Api-Key');
+  if (apiKey !== env.CLICKY_API_KEY) {
+    return new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
+  }
+  return true;
+}
+
+// ─── Route handlers ───────────────────────────────────────────────────────────
+
 async function handleChat(request: Request, env: Env): Promise<Response> {
   const body: ChatRequestBody = await request.json();
   const { messages, url, domExcerpt, stepId } = body;
   let { flowSlug } = body;
 
-  // If no flowSlug, classify intent to see if the user is asking for a guided flow
+  // If no flowSlug, classify intent via local keyword matching (no extra LLM call)
   if (!flowSlug) {
     const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content ?? '';
-    flowSlug = (await classifyIntent(lastUserMessage, env)) ?? undefined;
+    const indexJson = await env.KB_FLOWS.get('__index__');
+    if (indexJson) {
+      const flows = JSON.parse(indexJson) as FlowIndexEntry[];
+      flowSlug = classifyIntentLocal(lastUserMessage, flows) ?? undefined;
+    }
   }
 
   // Build system prompt, injecting flow step context when applicable
@@ -117,7 +147,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
   ];
 
   const foundryResponse = await fetch(
-    `${env.AZURE_FOUNDRY_ENDPOINT}/models/chat/completions?api-version=2025-01-01-preview`,
+    `${env.AZURE_FOUNDRY_ENDPOINT}/openai/deployments/${env.FOUNDRY_MAIN_MODEL}/chat/completions?api-version=2024-02-01`,
     {
       method: 'POST',
       headers: {
@@ -125,7 +155,6 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
         'api-key': env.AZURE_FOUNDRY_KEY,
       },
       body: JSON.stringify({
-        model: env.FOUNDRY_MAIN_MODEL,
         messages: foundryMessages,
         stream: true,
       }),
@@ -147,63 +176,24 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
       ...CORS_HEADERS,
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',
-      // Return the resolved slug so the extension knows which flow was matched
       'x-clicky-flow-slug': flowSlug ?? '',
     },
   });
 }
 
-// Calls the fast Foundry deployment to classify user intent against the flow index.
-// Returns the matching flow slug, or null if no flow matches.
-async function classifyIntent(userMessage: string, env: Env): Promise<string | null> {
-  const indexJson = await env.KB_FLOWS.get('__index__');
-  if (!indexJson) return null;
-
-  const index: FlowIndex = JSON.parse(indexJson);
-  const flowList = index.flows
-    .map(f => `${f.slug}: ${f.aliases.join(', ')}`)
-    .join('\n');
-
-  const response = await fetch(
-    `${env.AZURE_FOUNDRY_ENDPOINT}/models/chat/completions?api-version=2025-01-01-preview`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': env.AZURE_FOUNDRY_KEY,
-      },
-      body: JSON.stringify({
-        model: env.FOUNDRY_FAST_MODEL,
-        messages: [
-          {
-            role: 'system',
-            content: `You are an intent classifier for a medical billing app onboarding guide.
-Given a user message and a list of available guided flows (slug: aliases), return ONLY the matching slug if the user is asking to be guided through a specific task.
-Return null if no flow matches or the user is asking a general question.
-Respond with JSON only: {"flowSlug": "the-slug"} or {"flowSlug": null}`,
-          },
-          {
-            role: 'user',
-            content: `Available flows:\n${flowList}\n\nUser message: "${userMessage}"`,
-          },
-        ],
-        response_format: { type: 'json_object' },
-      }),
+function classifyIntentLocal(userMessage: string, flows: FlowIndexEntry[]): string | null {
+  const msg = userMessage.toLowerCase();
+  for (const flow of flows) {
+    for (const alias of flow.aliases) {
+      const words = alias.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      if (words.length > 0 && words.every(word => msg.includes(word))) {
+        return flow.slug;
+      }
     }
-  );
-
-  if (!response.ok) return null;
-
-  try {
-    const data = await response.json() as { choices: Array<{ message: { content: string } }> };
-    const parsed = JSON.parse(data.choices[0].message.content) as { flowSlug: string | null };
-    return parsed.flowSlug ?? null;
-  } catch {
-    return null;
   }
+  return null;
 }
 
-// Extracts the context for the current step from a flow article to inject into the system prompt.
 function extractStepContext(flowArticle: string, stepId?: string): string {
   const lines = flowArticle.split('\n');
 

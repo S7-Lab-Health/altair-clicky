@@ -1,0 +1,51 @@
+---
+title: "Navigate to Scrub Rules and Understand What's Configured"
+kind: flow
+slug: view-scrub-rules
+aliases: [scrub rules, billing rules, claim rules, claim scrubbing, view rules]
+entry_screen: /scrub-rules
+tags: [scrub-rules, claims, rules, configuration]
+estimated_steps: 4
+sources:
+  - "external/features/scrub-rules.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-scrub-rules
+instruction: Click "Scrub Rules" in the main sidebar under "Altair Intelligence."
+success_criteria: You are on the Scrub Rules page showing two tabs: CMS Rules and Custom Rules. Each tab shows a rule count.
+anchor: "Scrub Rules"
+on_success: next
+on_stuck: The link is in the sidebar under "Altair Intelligence."
+
+### step 2
+id: explore-cms-rules
+instruction: Click the "CMS Rules" tab. These are standard Medicare/Medicaid billing rules pre-configured by Altair — code pairs, modifier requirements, gender/age restrictions, and more. Each rule has a toggle to enable or disable it.
+success_criteria: You can see CMS Rules listed by category with descriptions and enable/disable toggles.
+anchor: "CMS Rules"
+on_success: next
+on_stuck: Click the CMS Rules tab at the top of the page.
+
+### step 3
+id: explore-custom-rules
+instruction: Click the "Custom Rules" tab. These are rules specific to your practice — either created by your team or proposed by Altair based on denial patterns.
+success_criteria: You can see custom rules listed, and any "Proposed Rules" (yellow) at the top waiting for your review.
+anchor: "Custom Rules"
+on_success: next
+on_stuck: Click the Custom Rules tab at the top of the page.
+
+### step 4
+id: review-proposed-rules
+instruction: If you see proposed rules (highlighted in yellow), read their descriptions to understand what Altair is suggesting. You can activate or reject each proposal.
+success_criteria: You understand what custom and proposed rules are in place, and which payers they apply to.
+anchor: "proposed rule"
+on_success: completion
+on_stuck: Proposed rules appear at the top of the Custom Rules list with a distinct visual treatment.
+
+## Completion Message
+you now understand what scrub rules are catching your claims before they go to payers. CMS rules handle federal requirements, custom rules capture your payer-specific patterns. want me to walk you through reviewing and activating a proposed rule?
+
+## Related Flows
+- review-proposed-rule

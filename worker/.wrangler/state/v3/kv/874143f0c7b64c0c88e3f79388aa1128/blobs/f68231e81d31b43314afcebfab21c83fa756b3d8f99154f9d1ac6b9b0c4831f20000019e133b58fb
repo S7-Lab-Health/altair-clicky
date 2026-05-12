@@ -1,0 +1,44 @@
+---
+title: "Search for a Patient Record"
+kind: flow
+slug: find-patient
+aliases: [patient search, find patient, patient lookup, patient list, search patient]
+entry_screen: /patients
+tags: [patients, search, directory]
+estimated_steps: 3
+sources:
+  - "external/features/patients.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-patients
+instruction: Click "Patients" in the main sidebar under the "Directory" section.
+success_criteria: You are on the Patients page with a searchable table. Each row shows patient name, date of birth, biological sex, and status (Active/Inactive).
+anchor: "Patients"
+on_success: next
+on_stuck: "Patients" is in the sidebar under "Directory." The Directory section may be collapsed — click it to expand.
+
+### step 2
+id: search-for-patient
+instruction: Click the search bar and type the patient's first or last name. The table filters in real-time as you type.
+success_criteria: The table shows only patients matching your search.
+anchor: "search bar"
+on_success: next
+on_stuck: The search bar is above the patient table.
+
+### step 3
+id: open-patient-record
+instruction: Click on the correct patient row to open their full record. If multiple results appear, use the date of birth column to confirm the right patient.
+success_criteria: You are on the patient detail page showing demographics, summary tiles (encounter count, denials, documents), and tabs for Overview, Encounters, Documents, Authorizations, and History.
+anchor: "patient row"
+on_success: completion
+on_stuck: Click anywhere on the patient row.
+
+## Completion Message
+patient record is open. you can see all their encounters, documents, and prior authorizations from here.
+
+## Related Flows
+- view-patient-encounters
+- view-encounter-detail

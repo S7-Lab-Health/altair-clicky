@@ -1,0 +1,43 @@
+---
+title: "Open and Read a Payer Policy Document"
+kind: flow
+slug: view-payer-document
+aliases: [read policy, payer policy, policy document, view policy, open policy]
+entry_screen: /payer-intel/{payerId}
+tags: [payer-intel, documents, policies]
+estimated_steps: 3
+sources:
+  - "external/features/payer-intel.md"
+---
+
+## Steps
+
+### step 1
+id: open-payer-documents
+instruction: From the payer detail page (use review-payer-intel flow to get there), make sure the Documents tab is active. You'll see a list of policy documents on the left.
+success_criteria: The Documents tab is active and you can see a list of policy document titles.
+anchor: "Documents tab"
+on_success: next
+on_stuck: Navigate to a payer first using the review-payer-intel flow.
+
+### step 2
+id: click-document
+instruction: Click on a document title in the list to open it in the PDF viewer on the right side of the screen.
+success_criteria: The document is open in the PDF viewer. A chat bar is visible at the bottom of the viewer.
+anchor: "document title"
+on_success: next
+on_stuck: Click on any document name in the left panel list.
+
+### step 3
+id: ask-about-document
+instruction: Use the chat bar at the bottom of the document viewer to ask questions directly about this policy. For example: "Does this cover CPT 99213?", "What's the timely filing deadline?", "Are modifiers required for this service?" Altair answers by referencing the exact section.
+success_criteria: Altair has responded with a direct answer from the document content.
+anchor: "chat bar"
+on_success: completion
+on_stuck: Type in the chat input at the bottom of the viewer and press Enter.
+
+## Completion Message
+you can now read payer policies without leaving altair. use the chat to ask specific coverage questions — altair cites the exact section it's pulling from. the Criteria Trees tab has structured billing rules extracted from this and other policies.
+
+## Related Flows
+- review-payer-intel

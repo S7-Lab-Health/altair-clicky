@@ -2,13 +2,16 @@
  * background.ts — MV3 service worker
  *
  * Responsibilities:
+ * - Validate the user's Altair session before every Worker call (via /api/users/me)
  * - Receive transcript from content.ts → call Worker /chat → send step back
  * - Manage active flow state in chrome.storage.local (never in-memory — SW restarts after 30s idle)
  * - Fetch TTS audio from Worker → encode as base64 data URL → send to content.ts for playback
+ * - Proxy AssemblyAI transcription tokens to content.ts
  * - Handle URL changes for Tutor Mode proactive tips
  */
 
 declare const WORKER_URL: string;
+declare const CLICKY_API_KEY: string;
 
 import type { Message, ActiveFlow, ClickyStorageState, BackgroundMessage, ContentMessage } from './types';
 
@@ -20,20 +23,22 @@ const ONBOARDING_FLOW_SEQUENCE = [
   'view-memory-patterns',
 ];
 
+// Cache a verified Altair session for 5 minutes to avoid /api/users/me on every message
+const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
+
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     await chrome.storage.local.set({
       isFirstInstall: true,
-      preferences: { tutorMode: true, voiceEnabled: true },
+      preferences: { tutorMode: true, voiceEnabled: false },
       onboardingProgress: { currentFlowIndex: 0, completedFlows: [] },
     } satisfies ClickyStorageState);
 
-    // Welcome message on first install
     const tabs = await getAltairTabs();
     for (const tab of tabs) {
-      if (tab.id) chrome.tabs.sendMessage(tab.id, { type: 'SHOW_WELCOME' } satisfies ContentMessage);
+      if (tab.id) sendToTab(tab.id, { type: 'SHOW_WELCOME' });
     }
   }
 });
@@ -48,7 +53,7 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender, sendRe
       console.error('[background] unhandled error:', error);
       sendResponse(null);
     });
-  return true; // Keep port open for async sendResponse
+  return true;
 });
 
 async function handleMessage(message: BackgroundMessage, senderTabId?: number): Promise<unknown> {
@@ -59,6 +64,10 @@ async function handleMessage(message: BackgroundMessage, senderTabId?: number): 
 
     case 'STEP_COMPLETE':
       await advanceFlow(senderTabId);
+      break;
+
+    case 'CLOSE_FLOW':
+      await chrome.storage.local.remove('activeFlow');
       break;
 
     case 'URL_CHANGED':
@@ -91,13 +100,86 @@ async function handleMessage(message: BackgroundMessage, senderTabId?: number): 
       });
       break;
     }
+
+    case 'GET_TRANSCRIBE_TOKEN':
+      return getTranscribeToken(senderTabId);
   }
   return null;
+}
+
+// ─── Altair session validation ────────────────────────────────────────────────
+
+// Calls /api/users/me from within the Altair tab so the browser's existing
+// session cookies are sent automatically. Returns true if the user is logged in.
+async function verifyAltairSession(tabId: number): Promise<boolean> {
+  const { altairSessionExpiry } = await chrome.storage.local.get('altairSessionExpiry') as {
+    altairSessionExpiry?: number;
+  };
+  if (altairSessionExpiry && altairSessionExpiry > Date.now()) return true;
+
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        try {
+          const resp = await fetch(`${window.location.origin}/api/users/me`, {
+            credentials: 'include',
+          });
+          return resp.ok;
+        } catch {
+          return false;
+        }
+      },
+    });
+
+    const isValid = results[0]?.result === true;
+    if (isValid) {
+      await chrome.storage.local.set({
+        altairSessionExpiry: Date.now() + SESSION_CACHE_TTL_MS,
+      });
+    }
+    return isValid;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Authenticated Worker fetch ───────────────────────────────────────────────
+
+// All Worker requests carry the pre-shared API key. Session validation is done
+// separately (once per SESSION_CACHE_TTL_MS) before calling this.
+async function fetchWorker(path: string, options: RequestInit = {}): Promise<Response> {
+  return fetch(`${WORKER_URL}${path}`, {
+    ...options,
+    headers: {
+      ...(options.headers as Record<string, string> ?? {}),
+      'X-Clicky-Api-Key': CLICKY_API_KEY,
+    },
+  });
+}
+
+// ─── Transcription token proxy ────────────────────────────────────────────────
+
+async function getTranscribeToken(tabId?: number): Promise<{ token: string } | null> {
+  if (tabId && !(await verifyAltairSession(tabId))) return null;
+  const response = await fetchWorker('/transcribe-token', { method: 'POST' });
+  if (!response.ok) return null;
+  return response.json() as Promise<{ token: string }>;
 }
 
 // ─── Core chat flow ───────────────────────────────────────────────────────────
 
 async function processTranscript(transcript: string, tabId?: number): Promise<void> {
+  // Gate on Altair session — only logged-in users can use Clicky
+  if (tabId && !(await verifyAltairSession(tabId))) {
+    sendToTab(tabId, {
+      type: 'SHOW_MESSAGE',
+      speechText: 'Please log in to Altair to use Clicky.',
+      audioDataUrl: null,
+    });
+    return;
+  }
+
   const state = await loadState();
   const { activeFlow, preferences } = state;
 
@@ -108,7 +190,7 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
 
   const url = tabId ? await getTabUrl(tabId) : '';
 
-  const response = await fetch(`${WORKER_URL}/chat`, {
+  const response = await fetchWorker('/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -128,21 +210,31 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
   const resolvedFlowSlug = response.headers.get('x-clicky-flow-slug') || activeFlow?.slug || null;
   const fullText = await accumulateSSEStream(response);
 
-  const updatedHistory: Message[] = [
-    ...messages,
-    { role: 'assistant', content: fullText },
-  ];
-
-  // Parse [ANCHOR:name] token — strip it from spoken text
   const anchorMatch = fullText.match(/\[ANCHOR:([^\]]+)\]/);
-  const anchor = anchorMatch?.[1] ?? null;
-  const stepComplete = fullText.includes('STEP_COMPLETE');
-  const speechText = fullText
+  const clickMatch = fullText.match(/\[CLICK:([^\]]+)\]/);
+  const anchor = anchorMatch?.[1] ?? clickMatch?.[1] ?? null;
+  const autoClick = !!clickMatch;
+
+  const flowDone = fullText.includes('FLOW_DONE');
+  const stepComplete = fullText.includes('STEP_COMPLETE') && !flowDone;
+
+  const signalIdx = flowDone
+    ? fullText.indexOf('FLOW_DONE')
+    : stepComplete
+    ? fullText.indexOf('STEP_COMPLETE')
+    : -1;
+  const textToSpeak = signalIdx >= 0 ? fullText.slice(0, signalIdx) : fullText;
+  const speechText = textToSpeak
     .replace(/\[ANCHOR:[^\]]+\]/g, '')
-    .replace(/STEP_COMPLETE/g, '')
+    .replace(/\[CLICK:[^\]]+\]/g, '')
+    .replace(/\s{2,}/g, ' ')
     .trim();
 
-  // Persist updated flow state before doing anything async (TTS fetch)
+  const updatedHistory: Message[] = [
+    ...messages,
+    { role: 'assistant', content: speechText || fullText },
+  ];
+
   if (resolvedFlowSlug && !activeFlow) {
     await chrome.storage.local.set({
       activeFlow: {
@@ -152,7 +244,7 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
         startedAt: Date.now(),
       } satisfies ActiveFlow,
     });
-  } else if (activeFlow) {
+  } else if (activeFlow && !flowDone) {
     await chrome.storage.local.set({
       activeFlow: { ...activeFlow, conversationHistory: updatedHistory } satisfies ActiveFlow,
     });
@@ -163,21 +255,31 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
     : null;
 
   if (tabId) {
-    const msg: ContentMessage = stepComplete
-      ? { type: 'FLOW_COMPLETE', anchor, speechText, audioDataUrl }
-      : { type: 'SHOW_STEP', anchor, speechText, audioDataUrl, flowSlug: resolvedFlowSlug };
-    chrome.tabs.sendMessage(tabId, msg);
+    const msg: ContentMessage = flowDone
+      ? { type: 'FLOW_DONE', anchor, autoClick, speechText, audioDataUrl }
+      : { type: 'SHOW_STEP', anchor, autoClick, speechText, audioDataUrl, flowSlug: resolvedFlowSlug, hasNext: stepComplete };
+    sendToTab(tabId, msg);
   }
 
-  if (stepComplete) {
+  if (flowDone) {
     await chrome.storage.local.remove('activeFlow');
-    // Advance onboarding sequence if applicable
     await advanceOnboardingSequence(resolvedFlowSlug, tabId);
   }
 }
 
 async function advanceFlow(tabId?: number): Promise<void> {
-  // Re-enter conversation with a completion signal so Foundry moves to the next step
+  const state = await loadState();
+  if (state.activeFlow && Date.now() - state.activeFlow.startedAt > 30 * 60 * 1000) {
+    await chrome.storage.local.remove('activeFlow');
+    if (tabId) {
+      sendToTab(tabId, {
+        type: 'SHOW_MESSAGE',
+        speechText: 'That flow timed out. Start a new one whenever you\'re ready.',
+        audioDataUrl: null,
+      });
+    }
+    return;
+  }
   await processTranscript('[The user completed the step. Move to the next step.]', tabId);
 }
 
@@ -216,7 +318,6 @@ async function advanceOnboardingSequence(completedSlug: string | null, tabId?: n
     onboardingProgress: { currentFlowIndex: nextIndex, completedFlows },
   });
 
-  // Auto-start next onboarding flow after a brief pause
   const nextSlug = ONBOARDING_FLOW_SEQUENCE[nextIndex];
   if (nextSlug && tabId) {
     setTimeout(() => startFlow(nextSlug, tabId), 2000);
@@ -227,10 +328,11 @@ async function advanceOnboardingSequence(completedSlug: string | null, tabId?: n
 
 async function handleUrlChanged(url: string, tabId?: number): Promise<void> {
   const { preferences, activeFlow } = await loadState();
-  if (activeFlow) return; // Don't interrupt an active guided flow
+  if (activeFlow) return;
   if (!preferences?.tutorMode) return;
+  if (tabId && !(await verifyAltairSession(tabId))) return;
 
-  const response = await fetch(`${WORKER_URL}/chat`, {
+  const response = await fetchWorker('/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -253,11 +355,7 @@ async function handleUrlChanged(url: string, tabId?: number): Promise<void> {
     : null;
 
   if (tabId) {
-    chrome.tabs.sendMessage(tabId, {
-      type: 'SHOW_MESSAGE',
-      speechText: text,
-      audioDataUrl,
-    } satisfies ContentMessage);
+    sendToTab(tabId, { type: 'SHOW_MESSAGE', speechText: text, audioDataUrl });
   }
 }
 
@@ -266,7 +364,7 @@ async function handleUrlChanged(url: string, tabId?: number): Promise<void> {
 async function fetchTTSDataUrl(text: string): Promise<string | null> {
   if (!text.trim()) return null;
   try {
-    const response = await fetch(`${WORKER_URL}/tts`, {
+    const response = await fetchWorker('/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, model_id: 'eleven_flash_v2_5' }),
@@ -332,5 +430,11 @@ async function getTabUrl(tabId: number): Promise<string> {
 async function getAltairTabs(): Promise<chrome.tabs.Tab[]> {
   return chrome.tabs.query({
     url: ['https://altair-health.com/*', 'https://beta.altair-health.com/*'],
+  });
+}
+
+function sendToTab(tabId: number, message: ContentMessage): void {
+  chrome.tabs.sendMessage(tabId, message).catch(() => {
+    // Tab not ready or content script not injected yet — safe to ignore
   });
 }

@@ -1,0 +1,52 @@
+---
+title: "Navigate to Altair Memory and Read Denial Patterns"
+kind: flow
+slug: view-memory-patterns
+aliases: [memory patterns, denial patterns, memory, knowledge base, altair memory]
+entry_screen: /memory
+tags: [altair-memory, patterns, denials, intelligence]
+estimated_steps: 4
+sources:
+  - "external/features/altair-memory.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-memory
+instruction: Click "Altair Memory" in the main sidebar under "Altair Intelligence."
+success_criteria: You are on the Altair Memory page. The stats strip at the top shows total patterns, denial signals, top CARC code, and top denial reason. Three tabs are visible: Patterns, Field Notes, and Industry.
+anchor: "Altair Memory"
+on_success: next
+on_stuck: The link is in the sidebar under "Altair Intelligence."
+
+### step 2
+id: read-stats-strip
+instruction: Read the stats strip at the top: total patterns, denial signals analyzed, the most frequent CARC code, and the top denial root cause.
+success_criteria: You understand the high-level picture of denial activity in your practice.
+anchor: "stats strip"
+on_success: next
+on_stuck: The stats strip is the highlighted bar at the very top of the page.
+
+### step 3
+id: browse-patterns
+instruction: The Patterns tab is active by default. Each pattern card shows a plain-English summary (e.g., "Payer X denies CPT 36475 without modifier 59"), the CARC code, how many times it's been seen, and whether it's been converted to a scrub rule ("Auto-catching").
+success_criteria: You can read denial patterns and understand what recurring issues exist in your practice.
+anchor: "pattern cards"
+on_success: next
+on_stuck: Pattern cards are listed on the page. Each describes a recurring denial issue.
+
+### step 4
+id: expand-pattern
+instruction: Click on any pattern card to expand it and see a deeper breakdown — including which codes and payers are connected to the issue.
+success_criteria: You've expanded a pattern and see additional detail about the codes and payers involved.
+anchor: "pattern card"
+on_success: completion
+on_stuck: Click on any pattern card to expand it.
+
+## Completion Message
+you can now see the denial patterns altair has learned from your claims. patterns that are "auto-catching" already have an active scrub rule. the ones that don't can be converted — go to Scrub Rules to review and activate proposed rules.
+
+## Related Flows
+- filter-memory-by-payer
+- view-scrub-rules

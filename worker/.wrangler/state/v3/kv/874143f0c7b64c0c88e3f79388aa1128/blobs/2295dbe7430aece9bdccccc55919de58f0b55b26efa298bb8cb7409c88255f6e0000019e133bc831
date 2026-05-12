@@ -1,0 +1,44 @@
+---
+title: "Use the Account Context Bar to Filter by a Specific Account"
+kind: flow
+slug: switch-account-context
+aliases: [switch account, account selector, change account, account filter, select account]
+entry_screen: /hub
+tags: [accounts, billing, context, dashboard]
+estimated_steps: 3
+sources:
+  - "external/features/billing-hub.md"
+  - "external/features/navigation.md"
+---
+
+## Steps
+
+### step 1
+id: find-account-context-bar
+instruction: Go to the Billing Hub (click the Altair logo or "Billing Hub" in the sidebar). Look at the highlighted Account Context Bar below your greeting — it shows the current account name, NPI, and open item count.
+success_criteria: You can see the Account Context Bar with the current account displayed.
+anchor: "Account Context Bar"
+on_success: next
+on_stuck: The Account Context Bar is the first card below your greeting on the Billing Hub.
+
+### step 2
+id: open-account-switcher
+instruction: Click the account name in the Context Bar to open the dropdown. You'll see all accounts with their names and NPI numbers, plus an "All Accounts" option at the top.
+success_criteria: The dropdown is open showing all available accounts.
+anchor: "account name"
+on_success: next
+on_stuck: Click directly on the account name text in the Context Bar.
+
+### step 3
+id: select-account
+instruction: Click the account you want to work in, or click "All Accounts" to see data across all NPIs.
+success_criteria: The Context Bar updates to show the selected account. All data across the app — Batches, Payments, Denials, Prior Auths, Patients — now filters to that account.
+anchor: "account option"
+on_success: completion
+on_stuck: Click the account name from the dropdown list.
+
+## Completion Message
+account switched. every screen in altair now shows data for that NPI only. switch back to "All Accounts" anytime from the same Context Bar.
+
+## Related Flows
+- start-work-day

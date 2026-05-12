@@ -1,0 +1,51 @@
+---
+title: "Review and Approve or Reject an AI-Proposed Scrub Rule"
+kind: flow
+slug: review-proposed-rule
+aliases: [proposed rule, new rule, rule approval, activate rule, approve rule]
+entry_screen: /scrub-rules
+tags: [scrub-rules, rules, ai-suggestions, configuration]
+estimated_steps: 4
+sources:
+  - "external/features/scrub-rules.md"
+---
+
+## Steps
+
+### step 1
+id: go-to-custom-rules
+instruction: Go to Scrub Rules (sidebar > Altair Intelligence > Scrub Rules) and click the "Custom Rules" tab.
+success_criteria: The Custom Rules tab is active. You can see a yellow-highlighted "Proposed Rules" section at the top if any exist.
+anchor: "Custom Rules"
+on_success: next
+on_stuck: The Scrub Rules link is in the sidebar. Click the Custom Rules tab once on the page.
+
+### step 2
+id: read-proposed-rule
+instruction: Click on a proposed rule card to expand it and read: rule type (e.g., Modifier Requirement), which procedure or diagnosis codes it affects, which payer it applies to (or "All Payers"), severity level, and how many times this pattern was detected.
+success_criteria: You understand what Altair is proposing and why.
+anchor: "proposed rule card"
+on_success: next
+on_stuck: Proposed rules are in a yellow section at the top of the Custom Rules list. Click one to expand it.
+
+### step 3
+id: decide-on-rule
+instruction: Decide whether to activate or reject the rule. Click "Accept" if it's a valid pattern worth enforcing on future claims. Click "Reject" if it's not applicable to your practice.
+success_criteria: You have clicked either Accept or Reject.
+anchor: "Accept"
+on_success: next
+on_stuck: The Accept and Reject buttons are on the proposed rule card.
+
+### step 4
+id: confirm
+instruction: Confirm your action if prompted.
+success_criteria: If accepted: the rule moves to the active custom rules list and will now catch matching claims. If rejected: the proposed rule disappears.
+anchor: "Confirm"
+on_success: completion
+on_stuck: Click the confirmation button if a dialog appears.
+
+## Completion Message
+done. if you activated it, this rule will now catch future claims matching that pattern before they go to the payer — preventing that denial from recurring. altair continues learning and will propose new rules as new patterns emerge.
+
+## Related Flows
+- view-scrub-rules

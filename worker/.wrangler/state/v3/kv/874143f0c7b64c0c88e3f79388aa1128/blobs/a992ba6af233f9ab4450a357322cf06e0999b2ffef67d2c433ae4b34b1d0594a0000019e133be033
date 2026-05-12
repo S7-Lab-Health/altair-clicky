@@ -1,0 +1,69 @@
+---
+title: "Upload Your First Claim Batch"
+kind: flow
+slug: upload-first-batch
+aliases: [upload batch, upload 837, batch upload, submit claims batch]
+entry_screen: /batches
+tags: [onboarding, batches, claims, edi, 837]
+estimated_steps: 6
+sources:
+  - "external/features/batches.md"
+  - "external/features/navigation.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-batches
+instruction: Navigate to the Claim Batches section where you can upload a new batch.
+success_criteria: You are on the Batches page showing a list of existing batches grouped by month, with an "Upload Batch (837)" button visible in the top-right corner.
+anchor: "Claim Batches"
+on_success: next
+on_stuck: Click the sidebar navigation link that says "Claim Batches" under the "My Workspace" section.
+
+### step 2
+id: click-upload-button
+instruction: Click the "Upload Batch (837)" button to start the upload flow.
+success_criteria: A dialog box has opened with fields for Batch Name, Billing Account, Clearinghouse, and EDI File upload.
+anchor: "Upload Batch (837)"
+on_success: next
+on_stuck: Look for the button in the top-right corner of the Batches page.
+
+### step 3
+id: enter-batch-name
+instruction: Enter a friendly name for this batch (e.g., "April Week 1 Claims") in the Batch Name field. This helps you identify the batch later.
+success_criteria: The Batch Name field contains your chosen name.
+anchor: "Batch Name"
+on_success: next
+on_stuck: The Batch Name field is the first input field in the upload dialog. Click on it and type your name.
+
+### step 4
+id: select-billing-account
+instruction: Select the billing account (NPI) that these claims belong to from the Billing Account dropdown.
+success_criteria: A billing account has been selected, showing the account name and NPI number.
+anchor: "Billing Account"
+on_success: next
+on_stuck: Click the dropdown to see all available accounts. Each is labeled with the account name and NPI number.
+
+### step 5
+id: select-clearinghouse
+instruction: Select the clearinghouse that will process and route these claims to payers.
+success_criteria: A clearinghouse has been selected from the dropdown (e.g., "Optum").
+anchor: "Clearinghouse"
+on_success: next
+on_stuck: Click the Clearinghouse dropdown to see the list of configured clearinghouses.
+
+### step 6
+id: upload-edi-file
+instruction: Drag and drop your 837 EDI file into the upload area, or click to browse and select the file from your computer. Then click "Upload and Scrub."
+success_criteria: The file appears in the upload zone with its filename and size. The dialog closes and the batch appears in the list with a "Processing" status badge.
+anchor: "Upload and Scrub"
+on_success: completion
+on_stuck: Click the upload drop zone to browse for your file. Accepted formats are .837, .edi, and similar EDI formats.
+
+## Completion Message
+your batch is uploaded and altair is scrubbing the claims now. once it finishes processing, click the batch card to review any flagged issues before releasing. want me to walk you through the review step?
+
+## Related Flows
+- review-batch-edits
+- release-batch

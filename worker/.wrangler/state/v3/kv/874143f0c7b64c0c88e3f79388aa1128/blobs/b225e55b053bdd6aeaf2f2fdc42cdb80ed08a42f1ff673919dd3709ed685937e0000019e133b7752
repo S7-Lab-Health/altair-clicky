@@ -1,0 +1,53 @@
+---
+title: "Release a Batch After All Issues Resolved"
+kind: flow
+slug: release-batch
+aliases: [submit batch, release to clearinghouse, finalize batch, send claims, release claims]
+entry_screen: /batches/{batchId}
+tags: [batches, claims, submission]
+estimated_steps: 4
+sources:
+  - "external/features/batches.md"
+---
+
+## Steps
+
+### step 1
+id: open-ready-batch
+instruction: Navigate to the batch you want to release. It should show "Ready" status — all blocking issues resolved.
+success_criteria: You are on the Batch Review page and the "Release Batch" button is active (not grayed out).
+anchor: "Release Batch"
+on_success: next
+on_stuck: A grayed-out Release Batch button means there are still unresolved blocking issues. Resolve them first using the review-batch-edits flow.
+
+### step 2
+id: check-warnings-option
+instruction: If any warning-level claims remain, decide whether to include them. You'll see an "Include warnings" checkbox — check it only if you're confident those claims are fine to send.
+success_criteria: You've made your decision on warnings.
+anchor: "Include warnings"
+on_success: next
+on_stuck: The checkbox is optional — if you don't see it, all remaining claims are clean or you have no warnings.
+
+### step 3
+id: click-release-batch
+instruction: Click the "Release Batch" button.
+success_criteria: A confirmation dialog appears showing the total number of claims about to be submitted.
+anchor: "Release Batch"
+on_success: next
+on_stuck: The button is in the batch header or workflow area. It only activates once all blocking issues are cleared.
+
+### step 4
+id: confirm-release
+instruction: Review the claim count in the confirmation dialog and click "Confirm" to finalize the release.
+success_criteria: The batch status changes to "Released" and a success message confirms claims have been sent to the clearinghouse.
+anchor: "Confirm"
+on_success: completion
+on_stuck: Click the confirmation button in the dialog to finalize.
+
+## Completion Message
+batch released! your claims are on their way to the clearinghouse. expect an ERA (remittance advice) back from the payer within days showing what was paid and any denials. want me to show you how to upload that ERA when it arrives?
+
+## Related Flows
+- review-batch-edits
+- upload-era
+- view-payment-deposits

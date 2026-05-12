@@ -1,0 +1,52 @@
+---
+title: "Navigate to Payments and Read the Deposit Summary"
+kind: flow
+slug: view-payment-deposits
+aliases: [view deposits, payment summary, deposits page, payment deposits, check payments]
+entry_screen: /payments-denials
+tags: [payments, deposits, remittances]
+estimated_steps: 4
+sources:
+  - "external/features/payments.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-payments
+instruction: Click "Payments & Denials" in the main sidebar, then click the "Deposits" tab.
+success_criteria: The Deposits tab is active. You can see a list of deposits grouped by month, most recent expanded.
+anchor: "Deposits"
+on_success: next
+on_stuck: The "Payments & Denials" link is in the sidebar. Once there, click the "Deposits" tab.
+
+### step 2
+id: read-summary-strip
+instruction: Read the summary strip at the top: total amount received, count of auto-posted deposits, and count of deposits needing review.
+success_criteria: You can see the key payment totals at a glance.
+anchor: "summary strip"
+on_success: next
+on_stuck: The summary strip is displayed at the very top of the deposits table.
+
+### step 3
+id: filter-if-needed
+instruction: Optionally filter by payer name or posting status (All, Auto-Posted, Needs Review, Posted, Exception) using the controls above the table.
+success_criteria: Filters applied (or skipped). The deposit list shows what you want to see.
+anchor: "payer filter"
+on_success: next
+on_stuck: Filter controls are above the deposits table.
+
+### step 4
+id: review-deposit-rows
+instruction: Read the deposits table. Each row shows date, check/EFT number, payer name, amount, posting status, and reconciliation status. Click any row to open that deposit and see individual claim payments.
+success_criteria: You understand incoming payment activity and have opened a specific deposit if needed.
+anchor: "deposits table"
+on_success: completion
+on_stuck: Click on any row to see the breakdown of individual claim payments within that deposit.
+
+## Completion Message
+you can see all incoming payments here. any deposits with "Needs Review" or "Exception" status need attention — click into them to resolve posting issues. the Remittances tab breaks down individual claim-level payments.
+
+## Related Flows
+- upload-era
+- review-denial

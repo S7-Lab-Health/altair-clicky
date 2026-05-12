@@ -1,0 +1,53 @@
+---
+title: "Look Up a Payer in the Payer Directory"
+kind: flow
+slug: look-up-payer
+aliases: [payer directory, find payer, look up payer, payer EDI ID, payer lookup, insurance lookup, find insurance company, payer ID]
+entry_screen: /payer-directory
+tags: [payer-directory, rcm, insurance, edi, claims]
+estimated_steps: 4
+sources:
+  - "external/features/payer-directory.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-payer-directory
+instruction: Click "Payer Directory" in the main sidebar.
+success_criteria: You are on the Payer Directory page showing a table of payers with columns for Name, EDI Payer ID, Coverage, and States.
+anchor: payer-directory-nav-link
+on_success: next
+on_stuck: The Payer Directory link is in the left sidebar. It is separate from Payer Intelligence — the directory shows identifying information like EDI IDs, while Payer Intel shows billing policies.
+
+### step 2
+id: search-for-payer
+instruction: Type the payer's name (or part of it) in the search bar to filter the list. You can also use the coverage type or state filters to narrow results further.
+success_criteria: The payer you are looking for is visible in the filtered table.
+anchor: payer-directory-search-bar
+on_success: next
+on_stuck: Try searching by a shorter part of the name, or try an alternate name (e.g., "BCBS" instead of "Blue Cross Blue Shield"). The directory includes "Also Known As" entries for payers with multiple names.
+
+### step 3
+id: expand-payer-row
+instruction: Click on the payer's row in the table to expand it and view the full details panel.
+success_criteria: The expanded panel is visible showing clearinghouse IDs, all operating states, alternative payer names (Also Known As), and a link to the payer's website.
+anchor: payer-row
+on_success: next
+on_stuck: Click anywhere on the payer row to expand it. The panel appears inline below the row — scroll down if needed.
+
+### step 4
+id: copy-edi-payer-id
+instruction: Note the EDI Payer ID from the row or the expanded panel. This is the ID you need when setting up claims routing or verifying payer registration.
+success_criteria: You have the correct EDI Payer ID for the payer. If you need clearinghouse-specific IDs, those are also shown in the expanded panel.
+anchor: edi-payer-id
+on_success: completion
+on_stuck: The EDI Payer ID appears in the table row. Expand the row for clearinghouse-specific IDs if your practice uses multiple clearinghouses.
+
+## Completion Message
+payer found! use the EDI Payer ID when submitting claims or setting up payer routing. if the payer you need isn't in the directory, check the Unresolved tab — it lists payers that have appeared on your claims but haven't been matched yet.
+
+## Related Flows
+- review-payer-intel
+- view-payer-document
+- upload-first-batch

@@ -1,0 +1,43 @@
+---
+title: "Navigate to Profile Settings"
+kind: flow
+slug: update-profile
+aliases: [profile settings, user settings, my profile, account settings, edit profile]
+entry_screen: /profile
+tags: [profile, settings, personal, user]
+estimated_steps: 3
+sources:
+  - "external/features/profile.md"
+---
+
+## Steps
+
+### step 1
+id: find-profile-link
+instruction: At the very bottom of the left sidebar, below a divider line, you'll see your name and role. Click on your name or avatar to open your profile settings.
+success_criteria: You are on the Profile page. A left-side menu shows sections: General, Security, Organization, and (if admin) Providers and Team.
+anchor: "profile link"
+on_success: next
+on_stuck: Scroll to the bottom of the sidebar. Your profile link is below all main navigation sections, under a horizontal divider.
+
+### step 2
+id: review-general-settings
+instruction: The General tab is selected by default. You can see your name (editable via the pencil icon), your email (read-only), and your sign-in method.
+success_criteria: You can see your profile information.
+anchor: "General"
+on_success: next
+on_stuck: Click "General" in the left menu if needed.
+
+### step 3
+id: update-or-explore
+instruction: Click the pencil icon next to your name to edit it. Or explore other sections: Security to change your password, Organization for org-level settings, Team (admin only) to invite users and manage roles.
+success_criteria: You have made any desired changes and explored available settings.
+anchor: "edit icon"
+on_success: completion
+on_stuck: Click the pencil/edit icon next to your name. Type the new name and press Enter or click the checkmark.
+
+## Completion Message
+profile settings are yours to manage. if you're an admin, the Team section is where you invite new users and assign roles.
+
+## Related Flows
+- start-work-day

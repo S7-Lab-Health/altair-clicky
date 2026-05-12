@@ -1,0 +1,53 @@
+---
+title: "Invite a New Team Member"
+kind: flow
+slug: invite-team-member
+aliases: [invite user, add team member, add user, invite biller, invite admin, new team member, add staff]
+entry_screen: /profile
+tags: [profile, settings, team, users, roles]
+estimated_steps: 4
+sources:
+  - "external/features/user-roles.md"
+  - "external/features/profile.md"
+---
+
+## Steps
+
+### step 1
+id: open-profile-team
+instruction: Click your profile icon or name in the top-right corner to open Profile settings, then click the "Team" section in the left navigation.
+success_criteria: You are on the Team tab showing a list of current team members and an "Invite User" button. If you do not see this button, you may not have Admin role.
+anchor: profile-team-tab
+on_success: next
+on_stuck: Profile is usually in the top-right corner. Once in Profile, look for "Team" in the left-hand navigation panel.
+
+### step 2
+id: click-invite-user
+instruction: Click the "Invite User" button.
+success_criteria: An invite dialog has opened with fields for email address and role selection (Biller or Admin).
+anchor: invite-user-button
+on_success: next
+on_stuck: The Invite User button is on the Team page. Only Admins see this button — if it's missing, ask your Admin to send the invite.
+
+### step 3
+id: enter-email-and-role
+instruction: Enter the new team member's email address. Select their role: choose "Biller" for billing staff who need access to claims and workflows, or "Admin" for supervisors who also need to manage team members and settings.
+success_criteria: Email address is entered and a role is selected.
+anchor: invite-email-field
+on_success: next
+on_stuck: Type the full email address in the email field, then click the role dropdown to choose Biller or Admin.
+
+### step 4
+id: generate-and-send-invite
+instruction: Click to generate the invite link. Copy the link and send it to the new team member via email or your team's messaging app.
+success_criteria: An invite link is displayed. The new team member appears in the Team list with a "Pending" badge until they accept.
+anchor: generate-invite-link-button
+on_success: completion
+on_stuck: Click the generate/create button to get the link, then copy it and send it manually. If the link expires before the person uses it, generate a new one.
+
+## Completion Message
+invite sent! the new team member will use the link to set up their account. they'll show as "Pending" in your team list until they complete sign-up. if they don't receive it, just generate a fresh link from the same Team tab.
+
+## Related Flows
+- update-profile
+- switch-account-context

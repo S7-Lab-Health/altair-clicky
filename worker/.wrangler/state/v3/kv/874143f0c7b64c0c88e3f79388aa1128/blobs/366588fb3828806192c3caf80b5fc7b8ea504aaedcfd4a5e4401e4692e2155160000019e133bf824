@@ -1,0 +1,52 @@
+---
+title: "Open an Encounter and Read Its Status and Claim Lines"
+kind: flow
+slug: view-encounter-detail
+aliases: [encounter detail, claim detail, view claim, patient visit detail, read claim]
+entry_screen: /encounters/{encounterId}
+tags: [encounters, claims, details]
+estimated_steps: 4
+sources:
+  - "external/features/encounter-detail.md"
+---
+
+## Steps
+
+### step 1
+id: read-encounter-header
+instruction: On the encounter detail page, read the header: date of service (the page title), patient name, rendering provider, and payer shown as pill badges. Below is a status banner showing the current billing status and financial totals.
+success_criteria: You understand who this encounter is for, which payer was billed, and the current status.
+anchor: "encounter header"
+on_success: next
+on_stuck: Open an encounter from the Encounters list or patient record first.
+
+### step 2
+id: open-details-tab
+instruction: Click the "Details" tab if not already active to see the claim information, payments, and any denials.
+success_criteria: The Details tab is active. You can see sections for Claims, Payments, Issues (denials), and Coverage.
+anchor: "Details"
+on_success: next
+on_stuck: The Details tab is one of three tabs at the top of the page.
+
+### step 3
+id: review-claim-lines
+instruction: Click the claim card to expand it. Read the claim details: type (Professional/Institutional), total charge, diagnosis codes (ICD-10), and the line items table showing each CPT code with modifiers, units, billed charge, allowed amount, and paid amount.
+success_criteria: You understand what was billed, the diagnoses documented, and payment breakdowns per line.
+anchor: "Claims section"
+on_success: next
+on_stuck: The claim card is in the Claims section. Click it to expand and see line items.
+
+### step 4
+id: check-payments-and-denials
+instruction: Read the Payments section to see remittances received. Check the Issues section (if visible) for any denials with CARC codes, amounts, and action buttons. Use the Activity tab to see the full timeline of what happened to this encounter.
+success_criteria: You understand what was paid, what was denied, and the full billing history.
+anchor: "Payments section"
+on_success: completion
+on_stuck: Scroll down to see Payments and Issues sections. The Activity tab shows the full chronological timeline.
+
+## Completion Message
+you now have the full picture of this encounter — what was billed, what was paid, and any denials. use the action buttons on denials to manage them, or ask altair directly about anything you're unsure of.
+
+## Related Flows
+- find-encounter
+- review-denial

@@ -1,0 +1,61 @@
+---
+title: "Add a New Practice Location"
+kind: flow
+slug: add-location
+aliases: [add location, new location, add office, add facility, add practice site, create location]
+entry_screen: /locations
+tags: [locations, accounts, billing, npi, place-of-service]
+estimated_steps: 5
+sources:
+  - "external/features/locations.md"
+  - "external/features/accounts.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-locations
+instruction: Click "Locations" in the main sidebar, or open an account and click the "Locations" tab on the account detail page.
+success_criteria: You are on the Locations page showing a table of existing locations with columns for Name, Facility NPI, Tax ID, Address, POS, Providers, and Status.
+anchor: locations-nav-link
+on_success: next
+on_stuck: The "Locations" link is in the left sidebar. Alternatively, go to Accounts, open an account, and click the Locations tab.
+
+### step 2
+id: click-add-location
+instruction: Click the "Add Location" button.
+success_criteria: The Add Location form has opened with fields for Location Name, Facility NPI, Facility Tax ID, Service Address, Default Place of Service, and Active Providers.
+anchor: add-location-button
+on_success: next
+on_stuck: The button is at the top right of the Locations page.
+
+### step 3
+id: enter-location-name-and-npi
+instruction: Enter a descriptive Location Name your team will recognize (required). Optionally enter the Facility NPI — a 10-digit number assigned to this site.
+success_criteria: Location Name is filled in. Facility NPI is entered if applicable.
+anchor: location-name-field
+on_success: next
+on_stuck: Location Name is the only required field. The NPI field accepts exactly 10 digits.
+
+### step 4
+id: enter-address-and-pos
+instruction: Enter the full Service Address (street, city, two-letter state code, 5-digit ZIP). Select the Default Place of Service code for this site — for example, 11 for Office, 22 for Outpatient Hospital, or 24 for Ambulatory Surgical Center.
+success_criteria: Address fields are complete. A Place of Service code is selected from the dropdown.
+anchor: service-address-field
+on_success: next
+on_stuck: Click the Place of Service dropdown and select the code that best describes this location type.
+
+### step 5
+id: save-location
+instruction: Optionally check which providers practice at this location, then click "Save" (or equivalent) to create the location.
+success_criteria: The new location appears in the Locations table with Active status. Its name, address, and POS code are correct.
+anchor: save-location-button
+on_success: completion
+on_stuck: Fill in any required fields that are highlighted, then click Save.
+
+## Completion Message
+location added! it's now available when creating claims from that site. make sure the right providers are linked to this location so Altair can apply the correct billing rules.
+
+## Related Flows
+- view-accounts
+- upload-first-batch

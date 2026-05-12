@@ -1,0 +1,44 @@
+---
+title: "Write Off a Denied Claim as Uncollectible"
+kind: flow
+slug: resolve-denial-writeoff
+aliases: [write off denial, close denial, uncollectible, write-off, bad debt]
+entry_screen: /payments-denials
+tags: [denials, writeoff, claims]
+estimated_steps: 3
+sources:
+  - "external/features/denials.md"
+---
+
+## Steps
+
+### step 1
+id: open-denial-for-writeoff
+instruction: Open the denial you want to write off. The encounter detail page shows the denial card with action buttons.
+success_criteria: The denial card is visible with action buttons including "Write Off," "Appeal," and "Correct."
+anchor: "Write Off"
+on_success: next
+on_stuck: Use the review-denial flow to navigate to the denial first.
+
+### step 2
+id: click-writeoff
+instruction: Click the "Write Off" button on the denial card.
+success_criteria: A confirmation dialog has appeared asking you to confirm and optionally select a write-off reason.
+anchor: "Write Off"
+on_success: next
+on_stuck: The "Write Off" button is one of the action buttons on the denial card.
+
+### step 3
+id: confirm-writeoff
+instruction: Select a write-off reason if prompted (e.g., "Patient responsibility," "Payer final decision"), then click "Confirm."
+success_criteria: The denial status has changed to "Written Off." If all denials on the encounter are resolved, the encounter closes automatically.
+anchor: "Confirm"
+on_success: completion
+on_stuck: Click the confirmation button in the dialog. If a reason dropdown appears, select the most appropriate reason.
+
+## Completion Message
+written off. the balance is closed and the encounter will close once all its denials are resolved. the write-off is recorded for accounting and audit purposes.
+
+## Related Flows
+- review-denial
+- resolve-denial-appeal

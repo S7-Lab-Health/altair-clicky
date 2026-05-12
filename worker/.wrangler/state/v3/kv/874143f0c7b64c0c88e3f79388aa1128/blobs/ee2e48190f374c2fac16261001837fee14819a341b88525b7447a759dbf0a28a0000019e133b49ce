@@ -1,0 +1,44 @@
+---
+title: "Filter Altair Memory Patterns by a Specific Payer"
+kind: flow
+slug: filter-memory-by-payer
+aliases: [payer filter memory, memory filter, denial patterns by payer, filter patterns]
+entry_screen: /memory
+tags: [altair-memory, payers, patterns, filters]
+estimated_steps: 3
+sources:
+  - "external/features/altair-memory.md"
+---
+
+## Steps
+
+### step 1
+id: open-memory-page
+instruction: Navigate to Altair Memory (sidebar > Altair Intelligence > Altair Memory) with the Patterns tab active.
+success_criteria: You are on the Altair Memory page with pattern cards visible and filter controls above the list.
+anchor: "Altair Memory"
+on_success: next
+on_stuck: Click "Altair Memory" in the sidebar.
+
+### step 2
+id: select-payer-filter
+instruction: Click the payer filter dropdown above the patterns list and select the payer you want to focus on.
+success_criteria: A payer is selected. The patterns list updates to show only patterns for that payer.
+anchor: "payer filter"
+on_success: next
+on_stuck: The filter controls are above the patterns list. Look for a dropdown or field labeled "Payer."
+
+### step 3
+id: review-payer-patterns
+instruction: Read the filtered patterns. These show that payer's specific billing behaviors — which codes they deny, what denial codes they use, and how often issues occur.
+success_criteria: You understand that payer's denial patterns and requirements.
+anchor: "filtered patterns"
+on_success: completion
+on_stuck: The list now shows only patterns for the selected payer.
+
+## Completion Message
+you're now seeing just that payer's denial patterns. this tells you exactly what issues arise with them — useful for creating targeted scrub rules or preparing claims going to that payer.
+
+## Related Flows
+- view-memory-patterns
+- view-scrub-rules

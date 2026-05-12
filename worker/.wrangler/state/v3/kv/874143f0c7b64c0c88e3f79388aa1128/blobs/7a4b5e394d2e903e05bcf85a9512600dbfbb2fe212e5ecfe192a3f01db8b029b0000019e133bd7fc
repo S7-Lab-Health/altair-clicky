@@ -1,0 +1,52 @@
+---
+title: "Upload an ERA (Electronic Remittance Advice) File"
+kind: flow
+slug: upload-era
+aliases: [upload payment file, upload remittance, upload 835, era upload, post payments, upload era]
+entry_screen: /payments-denials
+tags: [payments, era, deposits, remittances]
+estimated_steps: 4
+sources:
+  - "external/features/payments.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-payments-denials
+instruction: Click "Payments & Denials" in the main sidebar under "My Workspace."
+success_criteria: You are on the Payments & Denials page. You can see Deposits, Remittances, and Denials tabs, and an "Upload ERA" button in the top-right.
+anchor: "Payments & Denials"
+on_success: next
+on_stuck: The "Payments & Denials" link is in the left sidebar.
+
+### step 2
+id: click-upload-era
+instruction: Click the "Upload ERA" button in the top-right corner.
+success_criteria: An upload dialog has opened asking you to select a billing account and upload an ERA file.
+anchor: "Upload ERA"
+on_success: next
+on_stuck: The button is at the top right of the page.
+
+### step 3
+id: select-account-and-file
+instruction: Select the billing account (NPI) the ERA belongs to, then drag and drop your ERA file into the upload area or click to browse. Accepted formats: .835, .era, .edi, .pdf.
+success_criteria: The file appears in the upload zone with its filename. The "Process ERA File" button is active.
+anchor: "Process ERA File"
+on_success: next
+on_stuck: Click the drop zone to browse for the file. ERA files come from your payer via portal, email, or SFTP.
+
+### step 4
+id: process-era
+instruction: Click "Process ERA File" to upload and process the remittance.
+success_criteria: The dialog closes. For EDI files, processing is instant. For PDFs, a "Processing..." message appears and you'll get a notification when done. Deposits, Remittances, and Denials tabs update with the new payment data.
+anchor: "Process ERA File"
+on_success: completion
+on_stuck: Click the button. The system processes the ERA and populates payment data automatically.
+
+## Completion Message
+era uploaded! altair is matching each payment to your claims and identifying any denials. check the Deposits tab for the payment summary and the Denials tab for any denied claims.
+
+## Related Flows
+- view-payment-deposits
+- review-denial

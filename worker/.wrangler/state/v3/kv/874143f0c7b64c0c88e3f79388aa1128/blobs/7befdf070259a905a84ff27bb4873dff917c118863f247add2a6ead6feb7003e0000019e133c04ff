@@ -1,0 +1,44 @@
+---
+title: "Open a Patient and See Their Encounter History"
+kind: flow
+slug: view-patient-encounters
+aliases: [patient encounters, patient visit history, encounter timeline, patient claims history]
+entry_screen: /patients/{patientId}
+tags: [patients, encounters, history]
+estimated_steps: 3
+sources:
+  - "external/features/patients.md"
+---
+
+## Steps
+
+### step 1
+id: open-patient
+instruction: Open a patient record using the find-patient flow or by clicking a patient from the Patients list.
+success_criteria: You are on the patient detail page. The Overview tab is showing demographics and summary tiles.
+anchor: "patient detail"
+on_success: next
+on_stuck: Use the find-patient flow first to locate the patient.
+
+### step 2
+id: click-encounters-tab
+instruction: Click the "Encounters" tab to see the patient's complete visit history.
+success_criteria: The Encounters tab is active. A chronological timeline of visits is displayed, newest first. Each card shows date of service, billed amount, status badge, provider, payer, and procedure codes. Red highlighting means a denial exists.
+anchor: "Encounters"
+on_success: next
+on_stuck: The Encounters tab is one of the tabs at the top of the patient detail page.
+
+### step 3
+id: click-into-encounter
+instruction: Click on any encounter card to open its full detail page to manage it.
+success_criteria: You are on the encounter detail page for the selected visit.
+anchor: "encounter card"
+on_success: completion
+on_stuck: Click on any encounter card.
+
+## Completion Message
+you can see this patient's complete billing history. red encounters have denials that need attention. click into any one to manage it.
+
+## Related Flows
+- find-patient
+- view-encounter-detail

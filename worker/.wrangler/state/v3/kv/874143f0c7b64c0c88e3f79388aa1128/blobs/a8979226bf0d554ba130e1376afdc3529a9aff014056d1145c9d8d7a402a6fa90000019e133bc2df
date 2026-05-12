@@ -1,0 +1,49 @@
+---
+title: "Submit a Support Ticket"
+kind: flow
+slug: submit-support-ticket
+aliases: [contact support, submit ticket, get help, report issue, open ticket, request help, reach support]
+entry_screen: /support
+tags: [support, help, onboarding]
+estimated_steps: 3
+sources:
+  - "external/features/support.md"
+---
+
+## Steps
+
+### step 1
+id: open-support
+instruction: Click the help or support link in the app — typically available from the main navigation or a help icon in a corner of the screen.
+success_criteria: The support request form is open and ready to fill in.
+anchor: support-help-link
+on_success: next
+on_stuck: Look for a "?" icon, "Help," or "Support" link in the navigation bar or sidebar. You do not need to leave the application.
+
+### step 2
+id: describe-issue
+instruction: Fill in the support form with as much detail as possible:
+  - **What you were trying to do** — e.g., "releasing a batch" or "uploading an ERA"
+  - **What happened instead** — the specific error message or unexpected behavior
+  - **Which patient, batch, or claim is affected** — include any identifiers you have
+  - **When it happened** — approximate date and time
+  - Attach a screenshot if the issue is visual
+success_criteria: The form is filled in with a clear description of the issue, affected record, and any relevant details.
+anchor: support-form-description
+on_success: next
+on_stuck: The more context you provide, the faster the support team can help. At minimum, describe what you were doing and what went wrong.
+
+### step 3
+id: submit-ticket
+instruction: Click "Submit" to send your support request.
+success_criteria: A confirmation message is shown and your ticket appears in the support system. You'll receive a reply through the in-app support system.
+anchor: support-submit-button
+on_success: completion
+on_stuck: Make sure all required fields are filled in, then click the Submit button.
+
+## Completion Message
+ticket submitted! keep an eye on the in-app support notifications for a reply. for blocking issues like a batch that won't release or a login problem, the team prioritizes those first.
+
+## Related Flows
+- upload-first-batch
+- review-batch-edits

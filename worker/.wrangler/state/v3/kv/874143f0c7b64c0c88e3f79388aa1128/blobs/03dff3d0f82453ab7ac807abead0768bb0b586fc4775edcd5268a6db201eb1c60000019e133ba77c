@@ -1,0 +1,51 @@
+---
+title: "Navigate to Payer Intelligence and Review Pending Suggestions"
+kind: flow
+slug: review-payer-intel
+aliases: [payer intel, payer intelligence, payer policies, payer documents, payor intel]
+entry_screen: /payer-intel
+tags: [payer-intel, policies, documents, intelligence]
+estimated_steps: 4
+sources:
+  - "external/features/payer-intel.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-payer-intel
+instruction: Click "Payor Intel" in the main sidebar under "Altair Intelligence."
+success_criteria: You are on the Payer Intelligence home screen showing Favorites, Recently Viewed, a search bar, and a banner showing pending documents if any exist.
+anchor: "Payor Intel"
+on_success: next
+on_stuck: The link is in the sidebar under "Altair Intelligence." Note: it may be spelled "Payor" not "Payer."
+
+### step 2
+id: check-pending-banner
+instruction: Look for a yellow banner at the top indicating how many payer policy documents are pending review. These are documents Altair has discovered and staged for your approval.
+success_criteria: You've noted whether there are pending documents waiting for review.
+anchor: "pending banner"
+on_success: next
+on_stuck: The banner appears at the top if there are pending documents. If no banner, you're up to date.
+
+### step 3
+id: open-payer
+instruction: Click a payer card from Favorites, Recently Viewed, or search for a payer by name using the search bar.
+success_criteria: You are on the payer detail page showing three tabs: Documents, Criteria Trees, and Packages.
+anchor: "payer card"
+on_success: next
+on_stuck: Click on any payer card or type a payer name in the search bar.
+
+### step 4
+id: review-documents-or-pending
+instruction: Browse the Documents tab to see policies and billing guides for this payer. If pending documents exist, look for a Review tab or indicator to work through them.
+success_criteria: You are reading a payer's policy documents or have started reviewing pending documents.
+anchor: "Documents tab"
+on_success: completion
+on_stuck: The Documents tab lists available policies. Click any document title to open it in the viewer.
+
+## Completion Message
+you're in payer intelligence. the Documents tab shows all available policies for this payer, and the Criteria Trees tab shows structured billing rules extracted from those policies. want me to show you how to read a specific policy document?
+
+## Related Flows
+- view-payer-document

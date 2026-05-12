@@ -1,0 +1,52 @@
+---
+title: "File an Appeal Against a Denial"
+kind: flow
+slug: resolve-denial-appeal
+aliases: [appeal denial, file appeal, challenge denial, dispute denial, appeal claim]
+entry_screen: /payments-denials
+tags: [denials, appeals, claims]
+estimated_steps: 4
+sources:
+  - "external/features/denials.md"
+---
+
+## Steps
+
+### step 1
+id: open-denial-for-appeal
+instruction: Open the denial you want to appeal. The encounter detail page shows the denial card with action buttons.
+success_criteria: The denial card is visible with action buttons including "Appeal," "Correct," and "Write Off."
+anchor: "Appeal"
+on_success: next
+on_stuck: Use the review-denial flow to navigate to the denial first.
+
+### step 2
+id: click-appeal
+instruction: Click the "Appeal" button on the denial card.
+success_criteria: The Altair AI panel has opened in appeal-drafting mode, pre-loaded with this denial's context.
+anchor: "Appeal"
+on_success: next
+on_stuck: The "Appeal" button is one of the action buttons on the denial card.
+
+### step 3
+id: develop-appeal-strategy
+instruction: Use the Altair chat to plan your appeal. Ask things like "What evidence should I include?" or "What's the appeal deadline for this payer?" Altair can also draft an appeal letter.
+success_criteria: You have a clear appeal strategy and/or a draft appeal letter from Altair.
+anchor: "Altair chat"
+on_success: next
+on_stuck: Type questions in the chat input at the bottom of the Altair panel and press Enter.
+
+### step 4
+id: mark-appealing-and-submit
+instruction: Mark the denial as "Appealing" using the status button on the denial card, then submit your appeal to the payer via their accepted method (portal, mail, fax).
+success_criteria: The denial status shows "Appealing" and you have submitted the appeal externally to the payer.
+anchor: "Mark as Appealing"
+on_success: completion
+on_stuck: Look for a button to update the denial status to "Appealing" on the denial card.
+
+## Completion Message
+appeal filed and tracked. altair will monitor for the payer's response — check back in a few days. if the appeal is approved, the claim updates to "Appeal Approved" and payment follows.
+
+## Related Flows
+- review-denial
+- resolve-denial-corrected

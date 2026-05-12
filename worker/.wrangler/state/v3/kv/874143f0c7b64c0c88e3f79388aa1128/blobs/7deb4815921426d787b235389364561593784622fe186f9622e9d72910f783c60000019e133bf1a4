@@ -1,0 +1,53 @@
+---
+title: "Browse and Manage Billing Accounts"
+kind: flow
+slug: view-accounts
+aliases: [view accounts, open accounts, manage accounts, billing accounts, NPI accounts, switch account, find account]
+entry_screen: /accounts
+tags: [accounts, billing, npi, providers, multi-account]
+estimated_steps: 4
+sources:
+  - "external/features/accounts.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-accounts
+instruction: Click "Accounts" in the main sidebar.
+success_criteria: You are on the Accounts page showing a card grid of your billing accounts. Each card shows the account name, billing NPI, account type, provider count, and location count.
+anchor: accounts-nav-link
+on_success: next
+on_stuck: The "Accounts" link is in the left sidebar. If you do not see it, check that you have the right permissions — Admin role is required to manage accounts.
+
+### step 2
+id: find-account
+instruction: Locate the account you want to view. Use the search bar at the top to search by account name or NPI if you have many accounts.
+success_criteria: The account card you are looking for is visible.
+anchor: accounts-search-bar
+on_success: next
+on_stuck: Type any part of the account name or the 10-digit NPI into the search bar to filter the list.
+
+### step 3
+id: open-account-detail
+instruction: Click the account card to open the account detail page.
+success_criteria: You are on the account detail page showing the account header with NPI and account type, and two tabs: Providers and Locations.
+anchor: account-card
+on_success: next
+on_stuck: Click anywhere on the card to open it.
+
+### step 4
+id: explore-tabs
+instruction: Click the "Providers" tab to see all clinicians billing under this account, or click the "Locations" tab to see all service sites linked to this account.
+success_criteria: The selected tab is active and showing the list of providers or locations associated with this billing NPI.
+anchor: providers-tab
+on_success: completion
+on_stuck: The two tabs — Providers and Locations — are at the top of the account detail page just below the header card.
+
+## Completion Message
+you're in the account detail view. from here you can review which providers and locations are linked to this billing NPI. if you need to add a new location, try the add-location flow.
+
+## Related Flows
+- add-location
+- switch-account-context
+- update-profile

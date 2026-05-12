@@ -1,0 +1,80 @@
+---
+title: "Create a New Prior Authorization"
+kind: flow
+slug: create-prior-auth
+aliases: [new pa, create pa, submit pa, prior authorization creation, new prior auth]
+entry_screen: /prior-auths
+tags: [prior-auth, authorizations, procedures]
+estimated_steps: 7
+sources:
+  - "external/features/prior-auth.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-prior-auths
+instruction: Click "Prior Authorizations" in the main sidebar under "My Workspace."
+success_criteria: You are on the Prior Authorizations page with a "Create PA" button in the top-right corner.
+anchor: "Prior Authorizations"
+on_success: next
+on_stuck: The link is in the left sidebar under "My Workspace."
+
+### step 2
+id: click-create-pa
+instruction: Click the "Create PA" button.
+success_criteria: Step 1 of the PA wizard is open with fields for Patient, Billing Account, and Rendering Provider.
+anchor: "Create PA"
+on_success: next
+on_stuck: The button is in the top-right corner.
+
+### step 3
+id: select-patient
+instruction: Search for and select the patient. Type their name in the Patient field and select the correct result.
+success_criteria: A patient is selected and their name is displayed.
+anchor: "Patient"
+on_success: next
+on_stuck: Click the Patient field and start typing the name. Select from the dropdown.
+
+### step 4
+id: select-account-and-provider
+instruction: Select the Billing Account (provider NPI) and Rendering Provider from their respective dropdowns. Then click "Next."
+success_criteria: Both are selected and Step 2 of the wizard is open showing fields for Payer, Procedure Codes, Diagnosis Codes, Linked Visit, and Supporting Documents.
+anchor: "Next"
+on_success: next
+on_stuck: Click each dropdown and select the appropriate option. Then click Next.
+
+### step 5
+id: enter-authorization-details
+instruction: Fill in the authorization details:
+  - **Payer**: search for and select the patient's insurance company
+  - **Procedure Codes**: add the CPT/HCPCS codes requiring authorization, with unit counts (at least one required)
+  - **Diagnosis Codes**: optionally add ICD-10 codes to support medical necessity
+  - **Linked Visit**: optionally link to a scheduled encounter
+  - **Supporting Documents**: optionally attach clinical notes or referral letters (PDF, images up to 10MB each)
+success_criteria: All required fields are filled. At least one procedure code with units is entered.
+anchor: "Payer"
+on_success: next
+on_stuck: Each field has search functionality — start typing and select from results.
+
+### step 6
+id: review-pa
+instruction: Click "Next" to go to the Review & Submit step. Verify all details: patient, account, provider, payer, procedure codes, diagnosis codes, and documents.
+success_criteria: You are on the Review & Submit step and all details look correct.
+anchor: "Next"
+on_success: next
+on_stuck: Click the Next button to reach the review step.
+
+### step 7
+id: submit-pa
+instruction: Click "Submit to Altair" to create and submit the prior authorization.
+success_criteria: The PA has been created. You are on the PA detail page showing the PA ID and initial status.
+anchor: "Submit to Altair"
+on_success: completion
+on_stuck: Make sure all required fields are correct. Click the submit button.
+
+## Completion Message
+prior auth created! altair is tracking it and will help you follow up with the payer. check the PA detail page for status updates — once approved, you'll see the authorization number and approved units there.
+
+## Related Flows
+- view-prior-auth-status

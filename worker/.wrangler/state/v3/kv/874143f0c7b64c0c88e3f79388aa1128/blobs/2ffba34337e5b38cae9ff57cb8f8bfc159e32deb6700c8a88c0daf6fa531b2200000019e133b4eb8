@@ -1,0 +1,53 @@
+---
+title: "Search for a Specific Encounter or Claim"
+kind: flow
+slug: find-encounter
+aliases: [search encounter, find claim, patient visit, encounter search, look up claim]
+entry_screen: /encounters
+tags: [encounters, claims, search]
+estimated_steps: 4
+sources:
+  - "external/features/encounters.md"
+  - "external/features/patients.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-encounters
+instruction: Click "Encounters" in the main sidebar, or use Cmd+K (Mac) / Ctrl+K (Windows) and type "Encounters" to navigate there.
+success_criteria: You are on the Encounters page with a search bar and a list of encounters.
+anchor: "Encounters"
+on_success: next
+on_stuck: Use the command palette (Cmd+K / Ctrl+K) if you can't find Encounters in the sidebar directly.
+
+### step 2
+id: search-for-encounter
+instruction: Type the patient name or encounter number in the search bar. Results filter as you type.
+success_criteria: Matching encounters are displayed in the list below.
+anchor: "search bar"
+on_success: next
+on_stuck: Click the search bar and start typing. Results update in real-time.
+
+### step 3
+id: filter-by-status
+instruction: Optionally use the status filter tabs above the list (e.g., Open, Submitted, Paid, Denied) to narrow results further.
+success_criteria: The encounter you're looking for is visible in the filtered list.
+anchor: "status filter"
+on_success: next
+on_stuck: Status filter tabs are above the encounter list.
+
+### step 4
+id: click-encounter
+instruction: Click on the encounter row to open its detail page.
+success_criteria: You are on the encounter detail page showing date of service, patient, provider, payer, and tabs for Details, Activity, and Documents.
+anchor: "encounter row"
+on_success: completion
+on_stuck: Click anywhere on the row.
+
+## Completion Message
+found it. the encounter detail page shows the full claim, payment history, any denials, and all attached documents.
+
+## Related Flows
+- view-encounter-detail
+- review-denial

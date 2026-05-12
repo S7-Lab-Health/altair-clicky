@@ -1,0 +1,51 @@
+---
+title: "Find and Check the Status of an Existing Prior Auth"
+kind: flow
+slug: view-prior-auth-status
+aliases: [check pa status, pa status, prior auth detail, authorization status, find prior auth]
+entry_screen: /prior-auths
+tags: [prior-auth, status, authorizations]
+estimated_steps: 4
+sources:
+  - "external/features/prior-auth.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-prior-auths
+instruction: Click "Prior Authorizations" in the main sidebar under "My Workspace."
+success_criteria: You are on the Prior Authorizations page showing PAs grouped by month, current month expanded.
+anchor: "Prior Authorizations"
+on_success: next
+on_stuck: The link is in the left sidebar.
+
+### step 2
+id: find-pa
+instruction: Use the search bar to find a PA by patient name, payer, authorization number, or procedure code. Or scroll through months to find it.
+success_criteria: The PA you're looking for is visible in the list with its status badge.
+anchor: "search bar"
+on_success: next
+on_stuck: Type in the search box to filter, or scroll through the monthly groups.
+
+### step 3
+id: click-pa-row
+instruction: Click on the PA row to open its detail page.
+success_criteria: You are on the PA detail page. The header shows patient, status, payer, and authorization number (if assigned). Three tabs are visible: Overview, Supporting Documents, and Clinical Criteria.
+anchor: "pa row"
+on_success: next
+on_stuck: Click anywhere on the PA row.
+
+### step 4
+id: review-pa-overview
+instruction: Read the Overview tab: patient, provider, payer, authorization number, effective and expiration dates, and the authorization lines table showing each CPT code with units requested, units approved, and units used (with progress bars).
+success_criteria: You understand the current status and how many units remain on the authorization.
+anchor: "Overview tab"
+on_success: completion
+on_stuck: The Overview tab is selected by default. If dates and approval numbers aren't showing, the PA is still pending with the payer.
+
+## Completion Message
+you can see the PA status and remaining units. if it's approved, go ahead and submit the claim. if it's still pending, follow up with the payer. if denied, altair can help you decide whether to appeal or resubmit with different codes.
+
+## Related Flows
+- create-prior-auth

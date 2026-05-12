@@ -1,0 +1,53 @@
+---
+title: "Open the Billing Hub and Start Your Work Day"
+kind: flow
+slug: start-work-day
+aliases: [open hub, billing hub, dashboard, my work queue, start shift, start day]
+entry_screen: /hub
+tags: [billing-hub, work-queue, navigation, dashboard]
+estimated_steps: 4
+sources:
+  - "external/features/billing-hub.md"
+  - "external/features/navigation.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-hub
+instruction: Click the Altair logo at the top of the sidebar or click "Billing Hub" in the sidebar to go to your home screen.
+success_criteria: You are on the Billing Hub with your personalized greeting, the Account Context Bar, Work Queue, Recent Conversations, and Quick Notes all visible.
+anchor: "Billing Hub"
+on_success: next
+on_stuck: The Altair logo is at the very top of the left sidebar. Click it to go to the Hub.
+
+### step 2
+id: check-account-context
+instruction: Look at the Account Context Bar below your greeting. It shows which account you're working in and how many open work items there are. Click the account name to switch accounts if you work across multiple NPIs.
+success_criteria: You know which account is selected and the count of open items.
+anchor: "Account Context Bar"
+on_success: next
+on_stuck: The Account Context Bar is the first card below your greeting. Click the account name to open the switcher dropdown.
+
+### step 3
+id: scan-work-queue
+instruction: Review the Work Queue panel. Use the tabs (All, Claims, Payments, Prior Auths, etc.) to filter by type. Note any items with pulsing badges — those are new and unreviewed.
+success_criteria: You understand what items need attention and have spotted any high-priority tasks.
+anchor: "Work Queue"
+on_success: next
+on_stuck: The Work Queue is the main panel on the left side of the Hub.
+
+### step 4
+id: pick-first-item
+instruction: Click on the first work item you want to tackle, or click "Ask Altair" on an item to get AI guidance before diving in.
+success_criteria: You have opened a work item or started an Altair conversation about one.
+anchor: "work item"
+on_success: completion
+on_stuck: Click on any work item row to open it, or click its "Ask Altair" button.
+
+## Completion Message
+you're all set. your work queue is loaded and altair is ready to help with any item. check back here between tasks for newly assigned items throughout the day.
+
+## Related Flows
+- ask-altair-about-item
+- open-altair-panel

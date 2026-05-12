@@ -1,0 +1,62 @@
+---
+title: "Open and Understand a Denied Claim"
+kind: flow
+slug: review-denial
+aliases: [view denial, denial detail, understand denial reason, read denial, open denial]
+entry_screen: /payments-denials
+tags: [denials, payments, claims, carc]
+estimated_steps: 5
+sources:
+  - "external/features/denials.md"
+  - "external/features/payments.md"
+---
+
+## Steps
+
+### step 1
+id: navigate-to-denials
+instruction: Click "Payments & Denials" in the main sidebar under "My Workspace," then click the "Denials" tab.
+success_criteria: The Denials tab is active. You can see a table of denied claims organized by month.
+anchor: "Payments & Denials"
+on_success: next
+on_stuck: The link is in the left sidebar. Once on the page, click the "Denials" tab at the top.
+
+### step 2
+id: find-denial
+instruction: Locate the denial you want to review. Each row shows the payer, CARC code, denied amount, patient name, and status. Use the search box or status tabs to filter if needed.
+success_criteria: The denial you're looking for is visible in the table.
+anchor: "denial row"
+on_success: next
+on_stuck: Type a patient name or payer in the search box, or click status tabs (New, Under Review, etc.) to narrow results.
+
+### step 3
+id: open-denial
+instruction: Click on the denial row to open the encounter detail page with the denial pre-selected.
+success_criteria: You are on the encounter detail page. The Issues section shows the denial with its CARC code, description, denied amount, and denial date.
+anchor: "denial row"
+on_success: next
+on_stuck: Click anywhere on the denial row to open it.
+
+### step 4
+id: read-denial-details
+instruction: Read the denial details: CARC code with its plain-English description, any RARC remark codes, the denied dollar amount, and the denial category (eligibility, timely filing, medical necessity, etc.).
+success_criteria: You understand why the claim was denied and what the CARC code means.
+anchor: "CARC description"
+on_success: next
+on_stuck: The denial details panel shows all this information. If you're unsure what a code means, continue to the next step to ask Altair.
+
+### step 5
+id: ask-altair-about-denial
+instruction: Click "Ask Altair" on the denial card to open the AI assistant with this denial's context pre-loaded. Ask anything: "What does this CARC code mean?" or "How should I respond to this?"
+success_criteria: The Altair panel has opened with the denial context loaded and is providing guidance on the denial reason and next steps.
+anchor: "Ask Altair"
+on_success: completion
+on_stuck: Click the "Ask Altair" button on the denial card, or press Cmd+J (Mac) / Ctrl+J (Windows) to open the panel.
+
+## Completion Message
+you now understand the denial. the next step is deciding how to resolve it — correct and resubmit, file an appeal, or write it off. which would you like to do?
+
+## Related Flows
+- resolve-denial-corrected
+- resolve-denial-appeal
+- resolve-denial-writeoff
