@@ -183,6 +183,15 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
   const state = await loadState();
   const { activeFlow, preferences } = state;
 
+  const isPrecomputedQA = !!(activeFlow?.steps);
+  console.log('[clicky] processTranscript', {
+    transcript,
+    activeFlowSlug: activeFlow?.slug ?? null,
+    mode: isPrecomputedQA ? 'precomputed-qa' : activeFlow ? 'llm-flow' : 'llm-freeform',
+    stepIndex: activeFlow?.stepIndex ?? null,
+    stepId: activeFlow?.stepId ?? null,
+  });
+
   const messages: Message[] = [
     ...(activeFlow?.conversationHistory ?? []),
     { role: 'user', content: transcript },
@@ -210,6 +219,11 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
   const resolvedFlowSlug = response.headers.get('x-clicky-flow-slug') || activeFlow?.slug || null;
   const fullText = await accumulateSSEStream(response);
 
+  console.log('[clicky] LLM response', {
+    resolvedFlowSlug,
+    fullText,
+  });
+
   const anchorMatch = fullText.match(/\[ANCHOR:([^\]]+)\]/);
   const clickMatch = fullText.match(/\[CLICK:([^\]]+)\]/);
   const anchor = anchorMatch?.[1] ?? clickMatch?.[1] ?? null;
@@ -217,6 +231,8 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
 
   const flowDone = fullText.includes('FLOW_DONE');
   const stepComplete = fullText.includes('STEP_COMPLETE') && !flowDone;
+
+  console.log('[clicky] LLM signals', { anchor, autoClick, flowDone, stepComplete, isPrecomputedQA });
 
   const signalIdx = flowDone
     ? fullText.indexOf('FLOW_DONE')
@@ -293,8 +309,10 @@ async function advanceFlow(tabId?: number): Promise<void> {
   // Pre-computed path — advance step locally, no LLM call
   if (activeFlow.steps && activeFlow.stepIndex !== undefined) {
     const nextIndex = activeFlow.stepIndex + 1;
+    console.log('[clicky] advanceFlow (precomputed)', { slug: activeFlow.slug, from: activeFlow.stepIndex, to: nextIndex, total: activeFlow.steps.length });
 
     if (nextIndex >= activeFlow.steps.length) {
+      console.log('[clicky] flow complete', { slug: activeFlow.slug });
       const completionText = activeFlow.completionMessage || 'All done!';
       const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(completionText) : null;
       if (tabId) {
@@ -318,14 +336,18 @@ async function advanceFlow(tabId?: number): Promise<void> {
 }
 
 async function startFlow(slug: string, tabId?: number): Promise<void> {
+  console.log('[clicky] startFlow', { slug });
+
   const stepsResponse = await fetchWorker('/flow-steps', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ slug }),
-  }).catch(() => null);
+  }).catch((err) => { console.error('[clicky] /flow-steps fetch error:', err); return null; });
 
   if (stepsResponse?.ok) {
     const { steps, completionMessage } = await stepsResponse.json() as { steps: PreloadedStep[]; completionMessage: string };
+    console.log('[clicky] pre-computed steps loaded', { slug, stepCount: steps.length, steps, completionMessage });
+
     if (steps.length > 0) {
       await chrome.storage.local.set({
         activeFlow: {
@@ -341,6 +363,9 @@ async function startFlow(slug: string, tabId?: number): Promise<void> {
       await sendPreloadedStep(steps[0], slug, tabId);
       return;
     }
+    console.warn('[clicky] /flow-steps returned 0 steps — falling back to LLM', { slug });
+  } else {
+    console.warn('[clicky] /flow-steps failed (status:', stepsResponse?.status, ') — falling back to LLM');
   }
 
   // Fallback: LLM-driven flow
@@ -356,6 +381,7 @@ async function startFlow(slug: string, tabId?: number): Promise<void> {
 }
 
 async function sendPreloadedStep(step: PreloadedStep, flowSlug: string, tabId?: number): Promise<void> {
+  console.log('[clicky] sendPreloadedStep', { flowSlug, stepId: step.id, anchor: step.anchor, autoClick: step.autoClick, instruction: step.instruction });
   const { preferences } = await loadState();
   const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(step.instruction) : null;
   if (tabId) {
