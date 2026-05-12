@@ -280,17 +280,20 @@
   }
   async function sendPreloadedStep(step, flowSlug, tabId) {
     console.log("[clicky] sendPreloadedStep", { flowSlug, stepId: step.id, anchor: step.anchor, autoClick: step.autoClick, instruction: step.instruction });
+    if (!tabId) return;
+    sendToTab(tabId, {
+      type: "SHOW_STEP",
+      anchor: step.anchor,
+      autoClick: step.autoClick,
+      speechText: step.instruction,
+      audioDataUrl: null,
+      flowSlug,
+      hasNext: true
+    });
     const { preferences } = await loadState();
-    const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(step.instruction) : null;
-    if (tabId) {
-      sendToTab(tabId, {
-        type: "SHOW_STEP",
-        anchor: step.anchor,
-        autoClick: step.autoClick,
-        speechText: step.instruction,
-        audioDataUrl,
-        flowSlug,
-        hasNext: true
+    if (preferences?.voiceEnabled !== false) {
+      fetchTTSDataUrl(step.instruction).then((audioDataUrl) => {
+        if (audioDataUrl) sendToTab(tabId, { type: "PLAY_AUDIO", audioDataUrl });
       });
     }
   }
@@ -319,6 +322,12 @@
   }
   async function handleUrlChanged(url, tabId) {
     const { preferences, activeFlow } = await loadState();
+    if (activeFlow?.steps && activeFlow.stepIndex !== void 0) {
+      const currentStep = activeFlow.steps[activeFlow.stepIndex];
+      console.log("[clicky] URL changed during flow \u2014 re-sending step", { url, stepId: currentStep.id });
+      await sendPreloadedStep(currentStep, activeFlow.slug, tabId);
+      return;
+    }
     if (activeFlow) return;
     if (!preferences?.tutorMode) return;
     if (tabId && !await verifyAltairSession(tabId)) return;

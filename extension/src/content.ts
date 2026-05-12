@@ -73,6 +73,10 @@ chrome.runtime.onMessage.addListener((message: ContentMessage) => {
       playAudio(message.audioDataUrl);
       break;
 
+    case 'PLAY_AUDIO':
+      playAudio(message.audioDataUrl);
+      break;
+
     case 'SHOW_WELCOME':
       appendStepMessage("Hi! I'm Clicky — your Altair guide. Click the button to ask me anything.", false);
       break;

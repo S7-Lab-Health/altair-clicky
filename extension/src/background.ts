@@ -382,17 +382,24 @@ async function startFlow(slug: string, tabId?: number): Promise<void> {
 
 async function sendPreloadedStep(step: PreloadedStep, flowSlug: string, tabId?: number): Promise<void> {
   console.log('[clicky] sendPreloadedStep', { flowSlug, stepId: step.id, anchor: step.anchor, autoClick: step.autoClick, instruction: step.instruction });
+  if (!tabId) return;
+
+  // Send text immediately — don't block on TTS
+  sendToTab(tabId, {
+    type: 'SHOW_STEP',
+    anchor: step.anchor,
+    autoClick: step.autoClick,
+    speechText: step.instruction,
+    audioDataUrl: null,
+    flowSlug,
+    hasNext: true,
+  });
+
+  // Fetch TTS async and send audio when ready
   const { preferences } = await loadState();
-  const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(step.instruction) : null;
-  if (tabId) {
-    sendToTab(tabId, {
-      type: 'SHOW_STEP',
-      anchor: step.anchor,
-      autoClick: step.autoClick,
-      speechText: step.instruction,
-      audioDataUrl,
-      flowSlug,
-      hasNext: true,
+  if (preferences?.voiceEnabled !== false) {
+    fetchTTSDataUrl(step.instruction).then((audioDataUrl) => {
+      if (audioDataUrl) sendToTab(tabId, { type: 'PLAY_AUDIO', audioDataUrl });
     });
   }
 }
@@ -430,6 +437,15 @@ async function advanceOnboardingSequence(completedSlug: string | null, tabId?: n
 
 async function handleUrlChanged(url: string, tabId?: number): Promise<void> {
   const { preferences, activeFlow } = await loadState();
+
+  // Re-display the current step after navigation so the panel survives page transitions
+  if (activeFlow?.steps && activeFlow.stepIndex !== undefined) {
+    const currentStep = activeFlow.steps[activeFlow.stepIndex];
+    console.log('[clicky] URL changed during flow — re-sending step', { url, stepId: currentStep.id });
+    await sendPreloadedStep(currentStep, activeFlow.slug, tabId);
+    return;
+  }
+
   if (activeFlow) return;
   if (!preferences?.tutorMode) return;
   if (tabId && !(await verifyAltairSession(tabId))) return;

@@ -39,6 +39,7 @@ export type ContentMessage =
   | { type: 'SHOW_STEP'; anchor: string | null; autoClick: boolean; speechText: string; audioDataUrl: string | null; flowSlug: string | null; hasNext: boolean }
   | { type: 'FLOW_DONE'; anchor: string | null; autoClick: boolean; speechText: string; audioDataUrl: string | null }
   | { type: 'SHOW_MESSAGE'; speechText: string; audioDataUrl: string | null }
+  | { type: 'PLAY_AUDIO'; audioDataUrl: string }
   | { type: 'SHOW_WELCOME' }
   | { type: 'CLEAR_OVERLAY' };
 
