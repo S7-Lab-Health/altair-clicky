@@ -361,8 +361,13 @@
     const { preferences, activeFlow } = await loadState();
     if (activeFlow?.steps && activeFlow.stepIndex !== void 0) {
       const currentStep = activeFlow.steps[activeFlow.stepIndex];
-      console.log("[clicky] URL changed during flow \u2014 re-sending step", { url, stepId: currentStep.id });
-      await sendPreloadedStep(currentStep, activeFlow.slug, tabId);
+      if (currentStep.autoClick) {
+        console.log("[clicky] URL changed after auto-click \u2014 advancing flow", { url, stepId: currentStep.id });
+        await advanceFlow(tabId);
+      } else {
+        console.log("[clicky] URL changed during flow \u2014 re-sending step", { url, stepId: currentStep.id });
+        await sendPreloadedStep(currentStep, activeFlow.slug, tabId);
+      }
       return;
     }
     if (activeFlow) return;

@@ -33,6 +33,8 @@ let urlChangeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   } catch {
     return;
   }
+  // Hard page reload — clear any persisted flow so the user starts fresh
+  try { chrome.runtime.sendMessage({ type: 'CLOSE_FLOW' } satisfies BackgroundMessage); } catch { /* SW not ready */ }
   injectFloatingButton();
   injectTextPanel();
   patchHistoryForUrlDetection();
@@ -49,7 +51,22 @@ chrome.runtime.onMessage.addListener((message: ContentMessage) => {
         waitForAnchor(message.anchor, 3000).then((el) => {
           if (el) {
             highlightElement(el);
-            if (message.autoClick) setTimeout(() => (el as HTMLElement).click(), 500);
+            if (message.autoClick) {
+              const urlAtClick = window.location.href;
+              setTimeout(() => {
+                (el as HTMLElement).click();
+                // If the click didn't navigate (e.g. opened a dialog), auto-advance after 1.5s
+                setTimeout(() => {
+                  if (window.location.href === urlAtClick) {
+                    document.querySelectorAll('.clicky-next-btn').forEach((btn) => btn.remove());
+                    try {
+                      chrome.runtime.sendMessage({ type: 'STEP_COMPLETE' } satisfies BackgroundMessage);
+                    } catch { /* ignore */ }
+                  }
+                  // If URL changed, handleUrlChanged in background advances the flow
+                }, 1500);
+              }, 500);
+            }
           }
         });
       }

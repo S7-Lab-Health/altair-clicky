@@ -10,6 +10,10 @@
     } catch {
       return;
     }
+    try {
+      chrome.runtime.sendMessage({ type: "CLOSE_FLOW" });
+    } catch {
+    }
     injectFloatingButton();
     injectTextPanel();
     patchHistoryForUrlDetection();
@@ -23,7 +27,21 @@
           waitForAnchor(message.anchor, 3e3).then((el) => {
             if (el) {
               highlightElement(el);
-              if (message.autoClick) setTimeout(() => el.click(), 500);
+              if (message.autoClick) {
+                const urlAtClick = window.location.href;
+                setTimeout(() => {
+                  el.click();
+                  setTimeout(() => {
+                    if (window.location.href === urlAtClick) {
+                      document.querySelectorAll(".clicky-next-btn").forEach((btn) => btn.remove());
+                      try {
+                        chrome.runtime.sendMessage({ type: "STEP_COMPLETE" });
+                      } catch {
+                      }
+                    }
+                  }, 1500);
+                }, 500);
+              }
             }
           });
         }

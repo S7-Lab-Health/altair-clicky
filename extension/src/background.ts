@@ -487,11 +487,17 @@ async function advanceOnboardingSequence(completedSlug: string | null, tabId?: n
 async function handleUrlChanged(url: string, tabId?: number): Promise<void> {
   const { preferences, activeFlow } = await loadState();
 
-  // Re-display the current step after navigation so the panel survives page transitions
   if (activeFlow?.steps && activeFlow.stepIndex !== undefined) {
     const currentStep = activeFlow.steps[activeFlow.stepIndex];
-    console.log('[clicky] URL changed during flow — re-sending step', { url, stepId: currentStep.id });
-    await sendPreloadedStep(currentStep, activeFlow.slug, tabId);
+    if (currentStep.autoClick) {
+      // Navigation was triggered by an auto-click — advance to next step
+      console.log('[clicky] URL changed after auto-click — advancing flow', { url, stepId: currentStep.id });
+      await advanceFlow(tabId);
+    } else {
+      // Manual navigation — re-display current step on the new page
+      console.log('[clicky] URL changed during flow — re-sending step', { url, stepId: currentStep.id });
+      await sendPreloadedStep(currentStep, activeFlow.slug, tabId);
+    }
     return;
   }
 
