@@ -177,14 +177,9 @@
       { role: "assistant", content: speechText || fullText }
     ];
     if (resolvedFlowSlug && !activeFlow) {
-      await chrome.storage.local.set({
-        activeFlow: {
-          slug: resolvedFlowSlug,
-          stepId: null,
-          conversationHistory: updatedHistory,
-          startedAt: Date.now()
-        }
-      });
+      console.log("[clicky] intent matched \u2192 starting pre-computed flow", { resolvedFlowSlug });
+      await startFlow(resolvedFlowSlug, tabId);
+      return;
     } else if (activeFlow && !flowDone) {
       await chrome.storage.local.set({
         activeFlow: { ...activeFlow, conversationHistory: updatedHistory }

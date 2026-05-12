@@ -257,14 +257,10 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
   ];
 
   if (resolvedFlowSlug && !activeFlow) {
-    await chrome.storage.local.set({
-      activeFlow: {
-        slug: resolvedFlowSlug,
-        stepId: null,
-        conversationHistory: updatedHistory,
-        startedAt: Date.now(),
-      } satisfies ActiveFlow,
-    });
+    // Intent matched — boot pre-computed flow and discard the LLM response
+    console.log('[clicky] intent matched → starting pre-computed flow', { resolvedFlowSlug });
+    await startFlow(resolvedFlowSlug, tabId);
+    return;
   } else if (activeFlow && !flowDone) {
     await chrome.storage.local.set({
       activeFlow: { ...activeFlow, conversationHistory: updatedHistory } satisfies ActiveFlow,

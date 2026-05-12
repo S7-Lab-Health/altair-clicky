@@ -28,7 +28,7 @@ for file in "$FLOWS_DIR"/*.md; do
   fi
 
   echo "  PUT $slug"
-  npx wrangler kv key put --binding=KB_FLOWS "$slug" --path "$file" --remote
+  npx wrangler kv key put --binding=KB_FLOWS "$slug" --path "$file" 
 done
 
 # Build the __index__ using Python for correct JSON serialization
@@ -66,7 +66,7 @@ COUNT=$(python3 -c "import json; print(len(json.load(open('$TMPFILE'))))")
 
 echo ""
 echo "  PUT __index__ ($COUNT flows)"
-npx wrangler kv key put --binding=KB_FLOWS "__index__" --path "$TMPFILE" --remote
+npx wrangler kv key put --binding=KB_FLOWS "__index__" --path "$TMPFILE" 
 rm -f "$TMPFILE"
 
 echo ""
