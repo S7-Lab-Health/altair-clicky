@@ -12,6 +12,37 @@
   function isAudioEnabled(preferences) {
     return false;
   }
+  var cachedFlowsIndex = null;
+  var flowsIndexFetchedAt = 0;
+  var FLOWS_INDEX_TTL_MS = 10 * 60 * 1e3;
+  async function classifyIntent(userMessage) {
+    const now = Date.now();
+    if (!cachedFlowsIndex || now - flowsIndexFetchedAt > FLOWS_INDEX_TTL_MS) {
+      try {
+        const response = await fetchWorker("/flows");
+        if (response.ok) {
+          const raw = await response.json();
+          cachedFlowsIndex = Array.isArray(raw) ? raw : raw.flows ?? [];
+          flowsIndexFetchedAt = now;
+          console.log("[clicky] flows index cached", { count: cachedFlowsIndex.length });
+        }
+      } catch (err) {
+        console.warn("[clicky] failed to fetch flows index:", err);
+      }
+    }
+    if (!cachedFlowsIndex) return null;
+    const msg = userMessage.toLowerCase();
+    for (const flow of cachedFlowsIndex) {
+      for (const alias of flow.aliases) {
+        const words = alias.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+        if (words.length > 0 && words.every((word) => msg.includes(word))) {
+          console.log("[clicky] local intent match", { slug: flow.slug, matchedAlias: alias });
+          return flow.slug;
+        }
+      }
+    }
+    return null;
+  }
   chrome.runtime.onInstalled.addListener(async (details) => {
     if (details.reason === "install") {
       await chrome.storage.local.set({
@@ -128,6 +159,14 @@
     }
     const state = await loadState();
     const { activeFlow, preferences } = state;
+    if (!activeFlow) {
+      const matchedSlug = await classifyIntent(transcript);
+      if (matchedSlug) {
+        console.log("[clicky] local intent matched \u2192 startFlow, skipping LLM", { matchedSlug });
+        await startFlow(matchedSlug, tabId);
+        return;
+      }
+    }
     const isPrecomputedQA = !!activeFlow?.steps;
     console.log("[clicky] processTranscript", {
       transcript,

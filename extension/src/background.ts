@@ -31,6 +31,44 @@ function isAudioEnabled(preferences?: ClickyStorageState['preferences']): boolea
   return !DISABLE_AUDIO && preferences?.voiceEnabled !== false;
 }
 
+// ─── Local intent classifier ──────────────────────────────────────────────────
+
+interface FlowIndexEntry { slug: string; aliases: string[] }
+
+let cachedFlowsIndex: FlowIndexEntry[] | null = null;
+let flowsIndexFetchedAt = 0;
+const FLOWS_INDEX_TTL_MS = 10 * 60 * 1000;
+
+async function classifyIntent(userMessage: string): Promise<string | null> {
+  const now = Date.now();
+  if (!cachedFlowsIndex || now - flowsIndexFetchedAt > FLOWS_INDEX_TTL_MS) {
+    try {
+      const response = await fetchWorker('/flows');
+      if (response.ok) {
+        const raw = await response.json() as FlowIndexEntry[] | { flows?: FlowIndexEntry[] };
+        cachedFlowsIndex = Array.isArray(raw) ? raw : (raw.flows ?? []);
+        flowsIndexFetchedAt = now;
+        console.log('[clicky] flows index cached', { count: cachedFlowsIndex.length });
+      }
+    } catch (err) {
+      console.warn('[clicky] failed to fetch flows index:', err);
+    }
+  }
+  if (!cachedFlowsIndex) return null;
+
+  const msg = userMessage.toLowerCase();
+  for (const flow of cachedFlowsIndex) {
+    for (const alias of flow.aliases) {
+      const words = alias.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      if (words.length > 0 && words.every(word => msg.includes(word))) {
+        console.log('[clicky] local intent match', { slug: flow.slug, matchedAlias: alias });
+        return flow.slug;
+      }
+    }
+  }
+  return null;
+}
+
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -187,6 +225,16 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
 
   const state = await loadState();
   const { activeFlow, preferences } = state;
+
+  // Fast path: classify intent locally before calling LLM
+  if (!activeFlow) {
+    const matchedSlug = await classifyIntent(transcript);
+    if (matchedSlug) {
+      console.log('[clicky] local intent matched → startFlow, skipping LLM', { matchedSlug });
+      await startFlow(matchedSlug, tabId);
+      return;
+    }
+  }
 
   const isPrecomputedQA = !!(activeFlow?.steps);
   console.log('[clicky] processTranscript', {
