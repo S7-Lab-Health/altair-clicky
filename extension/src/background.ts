@@ -13,7 +13,7 @@
 declare const WORKER_URL: string;
 declare const CLICKY_API_KEY: string;
 
-import type { Message, ActiveFlow, ClickyStorageState, BackgroundMessage, ContentMessage } from './types';
+import type { Message, ActiveFlow, PreloadedStep, ClickyStorageState, BackgroundMessage, ContentMessage } from './types';
 
 const ONBOARDING_FLOW_SEQUENCE = [
   'upload-first-batch',
@@ -254,14 +254,19 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
     ? await fetchTTSDataUrl(speechText)
     : null;
 
+  // During a pre-computed flow, LLM is only used for Q&A — don't advance or terminate the flow
+  const isPrecomputed = !!(activeFlow?.steps);
+
   if (tabId) {
-    const msg: ContentMessage = flowDone
+    const msg: ContentMessage = (flowDone && !isPrecomputed)
       ? { type: 'FLOW_DONE', anchor, autoClick, speechText, audioDataUrl }
+      : isPrecomputed
+      ? { type: 'SHOW_MESSAGE', speechText, audioDataUrl }
       : { type: 'SHOW_STEP', anchor, autoClick, speechText, audioDataUrl, flowSlug: resolvedFlowSlug, hasNext: stepComplete };
     sendToTab(tabId, msg);
   }
 
-  if (flowDone) {
+  if (flowDone && !isPrecomputed) {
     await chrome.storage.local.remove('activeFlow');
     await advanceOnboardingSequence(resolvedFlowSlug, tabId);
   }
@@ -269,7 +274,11 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
 
 async function advanceFlow(tabId?: number): Promise<void> {
   const state = await loadState();
-  if (state.activeFlow && Date.now() - state.activeFlow.startedAt > 30 * 60 * 1000) {
+  const { activeFlow, preferences } = state;
+
+  if (!activeFlow) return;
+
+  if (Date.now() - activeFlow.startedAt > 30 * 60 * 1000) {
     await chrome.storage.local.remove('activeFlow');
     if (tabId) {
       sendToTab(tabId, {
@@ -280,10 +289,61 @@ async function advanceFlow(tabId?: number): Promise<void> {
     }
     return;
   }
+
+  // Pre-computed path — advance step locally, no LLM call
+  if (activeFlow.steps && activeFlow.stepIndex !== undefined) {
+    const nextIndex = activeFlow.stepIndex + 1;
+
+    if (nextIndex >= activeFlow.steps.length) {
+      const completionText = activeFlow.completionMessage || 'All done!';
+      const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(completionText) : null;
+      if (tabId) {
+        sendToTab(tabId, { type: 'FLOW_DONE', anchor: null, autoClick: false, speechText: completionText, audioDataUrl });
+      }
+      await chrome.storage.local.remove('activeFlow');
+      await advanceOnboardingSequence(activeFlow.slug, tabId);
+      return;
+    }
+
+    const nextStep = activeFlow.steps[nextIndex];
+    await chrome.storage.local.set({
+      activeFlow: { ...activeFlow, stepId: nextStep.id, stepIndex: nextIndex },
+    });
+    await sendPreloadedStep(nextStep, activeFlow.slug, tabId);
+    return;
+  }
+
+  // LLM-driven fallback
   await processTranscript('[The user completed the step. Move to the next step.]', tabId);
 }
 
 async function startFlow(slug: string, tabId?: number): Promise<void> {
+  const stepsResponse = await fetchWorker('/flow-steps', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slug }),
+  }).catch(() => null);
+
+  if (stepsResponse?.ok) {
+    const { steps, completionMessage } = await stepsResponse.json() as { steps: PreloadedStep[]; completionMessage: string };
+    if (steps.length > 0) {
+      await chrome.storage.local.set({
+        activeFlow: {
+          slug,
+          stepId: steps[0].id,
+          conversationHistory: [],
+          startedAt: Date.now(),
+          steps,
+          stepIndex: 0,
+          completionMessage,
+        } satisfies ActiveFlow,
+      });
+      await sendPreloadedStep(steps[0], slug, tabId);
+      return;
+    }
+  }
+
+  // Fallback: LLM-driven flow
   await chrome.storage.local.set({
     activeFlow: {
       slug,
@@ -293,6 +353,22 @@ async function startFlow(slug: string, tabId?: number): Promise<void> {
     } satisfies ActiveFlow,
   });
   await processTranscript(`Begin guiding me through the flow: ${slug}`, tabId);
+}
+
+async function sendPreloadedStep(step: PreloadedStep, flowSlug: string, tabId?: number): Promise<void> {
+  const { preferences } = await loadState();
+  const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(step.instruction) : null;
+  if (tabId) {
+    sendToTab(tabId, {
+      type: 'SHOW_STEP',
+      anchor: step.anchor,
+      autoClick: step.autoClick,
+      speechText: step.instruction,
+      audioDataUrl,
+      flowSlug,
+      hasNext: true,
+    });
+  }
 }
 
 async function startOnboarding(tabId?: number): Promise<void> {

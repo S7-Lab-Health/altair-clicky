@@ -69,7 +69,7 @@ chrome.runtime.onMessage.addListener((message: ContentMessage) => {
       break;
 
     case 'SHOW_MESSAGE':
-      appendStepMessage(message.speechText, false);
+      appendStepMessage(message.speechText, false, false);
       playAudio(message.audioDataUrl);
       break;
 
@@ -316,12 +316,12 @@ function ensureClickyPanel(): HTMLElement {
   return panel;
 }
 
-function appendStepMessage(text: string, hasNext: boolean): void {
+function appendStepMessage(text: string, hasNext: boolean, isStep = true): void {
   const panel = ensureClickyPanel();
   const messages = document.getElementById('clicky-panel-messages')!;
 
-  // Remove any lingering Next button from a previous message
-  messages.querySelectorAll('.clicky-next-btn').forEach((btn) => btn.remove());
+  // Only remove the Next button when showing a new step — not for inline Q&A replies
+  if (isStep) messages.querySelectorAll('.clicky-next-btn').forEach((btn) => btn.remove());
 
   const msgEl = document.createElement('div');
   msgEl.className = 'clicky-message';

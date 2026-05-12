@@ -41,7 +41,7 @@
         }
         break;
       case "SHOW_MESSAGE":
-        appendStepMessage(message.speechText, false);
+        appendStepMessage(message.speechText, false, false);
         playAudio(message.audioDataUrl);
         break;
       case "SHOW_WELCOME":
@@ -164,10 +164,10 @@
     document.body.appendChild(panel);
     return panel;
   }
-  function appendStepMessage(text, hasNext) {
+  function appendStepMessage(text, hasNext, isStep = true) {
     const panel = ensureClickyPanel();
     const messages = document.getElementById("clicky-panel-messages");
-    messages.querySelectorAll(".clicky-next-btn").forEach((btn) => btn.remove());
+    if (isStep) messages.querySelectorAll(".clicky-next-btn").forEach((btn) => btn.remove());
     const msgEl = document.createElement("div");
     msgEl.className = "clicky-message";
     const p = document.createElement("p");

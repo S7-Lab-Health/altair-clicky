@@ -175,18 +175,21 @@
       });
     }
     const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(speechText) : null;
+    const isPrecomputed = !!activeFlow?.steps;
     if (tabId) {
-      const msg = flowDone ? { type: "FLOW_DONE", anchor, autoClick, speechText, audioDataUrl } : { type: "SHOW_STEP", anchor, autoClick, speechText, audioDataUrl, flowSlug: resolvedFlowSlug, hasNext: stepComplete };
+      const msg = flowDone && !isPrecomputed ? { type: "FLOW_DONE", anchor, autoClick, speechText, audioDataUrl } : isPrecomputed ? { type: "SHOW_MESSAGE", speechText, audioDataUrl } : { type: "SHOW_STEP", anchor, autoClick, speechText, audioDataUrl, flowSlug: resolvedFlowSlug, hasNext: stepComplete };
       sendToTab(tabId, msg);
     }
-    if (flowDone) {
+    if (flowDone && !isPrecomputed) {
       await chrome.storage.local.remove("activeFlow");
       await advanceOnboardingSequence(resolvedFlowSlug, tabId);
     }
   }
   async function advanceFlow(tabId) {
     const state = await loadState();
-    if (state.activeFlow && Date.now() - state.activeFlow.startedAt > 30 * 60 * 1e3) {
+    const { activeFlow, preferences } = state;
+    if (!activeFlow) return;
+    if (Date.now() - activeFlow.startedAt > 30 * 60 * 1e3) {
       await chrome.storage.local.remove("activeFlow");
       if (tabId) {
         sendToTab(tabId, {
@@ -197,9 +200,51 @@
       }
       return;
     }
+    if (activeFlow.steps && activeFlow.stepIndex !== void 0) {
+      const nextIndex = activeFlow.stepIndex + 1;
+      if (nextIndex >= activeFlow.steps.length) {
+        const completionText = activeFlow.completionMessage || "All done!";
+        const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(completionText) : null;
+        if (tabId) {
+          sendToTab(tabId, { type: "FLOW_DONE", anchor: null, autoClick: false, speechText: completionText, audioDataUrl });
+        }
+        await chrome.storage.local.remove("activeFlow");
+        await advanceOnboardingSequence(activeFlow.slug, tabId);
+        return;
+      }
+      const nextStep = activeFlow.steps[nextIndex];
+      await chrome.storage.local.set({
+        activeFlow: { ...activeFlow, stepId: nextStep.id, stepIndex: nextIndex }
+      });
+      await sendPreloadedStep(nextStep, activeFlow.slug, tabId);
+      return;
+    }
     await processTranscript("[The user completed the step. Move to the next step.]", tabId);
   }
   async function startFlow(slug, tabId) {
+    const stepsResponse = await fetchWorker("/flow-steps", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug })
+    }).catch(() => null);
+    if (stepsResponse?.ok) {
+      const { steps, completionMessage } = await stepsResponse.json();
+      if (steps.length > 0) {
+        await chrome.storage.local.set({
+          activeFlow: {
+            slug,
+            stepId: steps[0].id,
+            conversationHistory: [],
+            startedAt: Date.now(),
+            steps,
+            stepIndex: 0,
+            completionMessage
+          }
+        });
+        await sendPreloadedStep(steps[0], slug, tabId);
+        return;
+      }
+    }
     await chrome.storage.local.set({
       activeFlow: {
         slug,
@@ -209,6 +254,21 @@
       }
     });
     await processTranscript(`Begin guiding me through the flow: ${slug}`, tabId);
+  }
+  async function sendPreloadedStep(step, flowSlug, tabId) {
+    const { preferences } = await loadState();
+    const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(step.instruction) : null;
+    if (tabId) {
+      sendToTab(tabId, {
+        type: "SHOW_STEP",
+        anchor: step.anchor,
+        autoClick: step.autoClick,
+        speechText: step.instruction,
+        audioDataUrl,
+        flowSlug,
+        hasNext: true
+      });
+    }
   }
   async function startOnboarding(tabId) {
     const { onboardingProgress } = await loadState();

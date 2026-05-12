@@ -41,6 +41,13 @@ interface FlowIndexEntry {
   aliases: string[];
 }
 
+interface PreloadedStep {
+  id: string;
+  instruction: string;
+  anchor: string | null;
+  autoClick: boolean;
+}
+
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 
 const CORS_HEADERS: Record<string, string> = {
@@ -86,6 +93,7 @@ export default {
         if (url.pathname === '/chat') return handleChat(request, env);
         if (url.pathname === '/tts') return handleTTS(request, env);
         if (url.pathname === '/transcribe-token') return handleTranscribeToken(env);
+        if (url.pathname === '/flow-steps') return handleGetFlowSteps(request, env);
       }
 
       if (request.method === 'GET') {
@@ -210,6 +218,81 @@ function extractStepContext(flowArticle: string, stepId?: string): string {
   ).join('\n');
 
   return `You are guiding the user through a flow. Current step:\n${stepBlock}\nWhen this step is complete, output STEP_COMPLETE on its own line.`;
+}
+
+async function handleGetFlowSteps(request: Request, env: Env): Promise<Response> {
+  const { slug } = await request.json() as { slug: string };
+  const article = await env.KB_FLOWS.get(slug);
+  if (!article) {
+    return jsonResponse({ error: `Flow not found: ${slug}` }, 404);
+  }
+  return jsonResponse(parseFlowSteps(article));
+}
+
+function parseFlowSteps(markdown: string): { steps: PreloadedStep[]; completionMessage: string } {
+  const lines = markdown.split('\n');
+  const steps: PreloadedStep[] = [];
+  const completionLines: string[] = [];
+
+  let inStep = false;
+  let inCompletion = false;
+  let currentId = '';
+  let currentInstruction = '';
+  let currentAnchor: string | null = null;
+  let currentAutoClick = false;
+
+  const pushStep = () => {
+    if (inStep && currentInstruction) {
+      steps.push({ id: currentId, instruction: currentInstruction, anchor: currentAnchor, autoClick: currentAutoClick });
+    }
+  };
+
+  for (const line of lines) {
+    if (/^### step \d+/i.test(line)) {
+      pushStep();
+      inStep = true;
+      inCompletion = false;
+      currentId = '';
+      currentInstruction = '';
+      currentAnchor = null;
+      currentAutoClick = false;
+      continue;
+    }
+
+    if (/^## Completion Message/i.test(line)) {
+      pushStep();
+      inStep = false;
+      inCompletion = true;
+      continue;
+    }
+
+    if (/^## /.test(line)) {
+      inStep = false;
+      inCompletion = false;
+      continue;
+    }
+
+    if (inStep) {
+      const idMatch = line.match(/^id:\s*(.+)$/);
+      if (idMatch) { currentId = idMatch[1].trim(); continue; }
+
+      const instrMatch = line.match(/^instruction:\s*(.+)$/);
+      if (instrMatch) { currentInstruction = instrMatch[1].trim(); continue; }
+
+      const anchorMatch = line.match(/^anchor:\s*["']?([^"'\n]+?)["']?\s*$/);
+      if (anchorMatch) { currentAnchor = anchorMatch[1].trim(); continue; }
+
+      const autoClickMatch = line.match(/^auto_click:\s*(.+)$/);
+      if (autoClickMatch) { currentAutoClick = autoClickMatch[1].trim() === 'true'; continue; }
+    }
+
+    if (inCompletion && line.trim()) {
+      completionLines.push(line.trim());
+    }
+  }
+
+  pushStep();
+  return { steps, completionMessage: completionLines.join(' ') };
 }
 
 async function handleGetFlow(slug: string, env: Env): Promise<Response> {

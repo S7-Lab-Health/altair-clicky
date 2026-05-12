@@ -3,11 +3,21 @@ export interface Message {
   content: string;
 }
 
+export interface PreloadedStep {
+  id: string;
+  instruction: string;
+  anchor: string | null;
+  autoClick: boolean;
+}
+
 export interface ActiveFlow {
   slug: string;
   stepId: string | null;
   conversationHistory: Message[];
   startedAt: number;
+  steps?: PreloadedStep[];
+  stepIndex?: number;
+  completionMessage?: string;
 }
 
 export interface ClickyStorageState {
