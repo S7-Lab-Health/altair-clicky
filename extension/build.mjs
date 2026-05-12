@@ -16,6 +16,7 @@ try {
 
 const workerUrl = process.env.WORKER_URL ?? 'https://clicky-proxy.REPLACE_SUBDOMAIN.workers.dev';
 const clickyApiKey = process.env.CLICKY_API_KEY ?? '';
+const disableAudio = process.env.DISABLE_AUDIO === 'true';
 
 await mkdir('dist', { recursive: true });
 
@@ -29,6 +30,7 @@ const buildOptions = {
   define: {
     WORKER_URL: JSON.stringify(workerUrl),
     CLICKY_API_KEY: JSON.stringify(clickyApiKey),
+    DISABLE_AUDIO: JSON.stringify(disableAudio),
   },
 };
 

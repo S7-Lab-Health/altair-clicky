@@ -9,6 +9,9 @@
     "view-memory-patterns"
   ];
   var SESSION_CACHE_TTL_MS = 5 * 60 * 1e3;
+  function isAudioEnabled(preferences) {
+    return false;
+  }
   chrome.runtime.onInstalled.addListener(async (details) => {
     if (details.reason === "install") {
       await chrome.storage.local.set({
@@ -187,7 +190,7 @@
         activeFlow: { ...activeFlow, conversationHistory: updatedHistory }
       });
     }
-    const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(speechText) : null;
+    const audioDataUrl = isAudioEnabled(preferences) ? await fetchTTSDataUrl(speechText) : null;
     const isPrecomputed = !!activeFlow?.steps;
     if (tabId) {
       const msg = flowDone && !isPrecomputed ? { type: "FLOW_DONE", anchor, autoClick, speechText, audioDataUrl } : isPrecomputed ? { type: "SHOW_MESSAGE", speechText, audioDataUrl } : { type: "SHOW_STEP", anchor, autoClick, speechText, audioDataUrl, flowSlug: resolvedFlowSlug, hasNext: stepComplete };
@@ -219,7 +222,7 @@
       if (nextIndex >= activeFlow.steps.length) {
         console.log("[clicky] flow complete", { slug: activeFlow.slug });
         const completionText = activeFlow.completionMessage || "All done!";
-        const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(completionText) : null;
+        const audioDataUrl = isAudioEnabled(preferences) ? await fetchTTSDataUrl(completionText) : null;
         if (tabId) {
           sendToTab(tabId, { type: "FLOW_DONE", anchor: null, autoClick: false, speechText: completionText, audioDataUrl });
         }
@@ -291,7 +294,7 @@
       hasNext: true
     });
     const { preferences } = await loadState();
-    if (preferences?.voiceEnabled !== false) {
+    if (isAudioEnabled(preferences)) {
       fetchTTSDataUrl(step.instruction).then((audioDataUrl) => {
         if (audioDataUrl) sendToTab(tabId, { type: "PLAY_AUDIO", audioDataUrl });
       });
@@ -346,7 +349,7 @@
     if (!response.ok) return;
     const text = await accumulateSSEStream(response);
     if (!text.trim() || text.includes("NO_TIP")) return;
-    const audioDataUrl = preferences.voiceEnabled !== false ? await fetchTTSDataUrl(text) : null;
+    const audioDataUrl = isAudioEnabled(preferences) ? await fetchTTSDataUrl(text) : null;
     if (tabId) {
       sendToTab(tabId, { type: "SHOW_MESSAGE", speechText: text, audioDataUrl });
     }

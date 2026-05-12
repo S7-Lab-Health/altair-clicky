@@ -12,6 +12,7 @@
 
 declare const WORKER_URL: string;
 declare const CLICKY_API_KEY: string;
+declare const DISABLE_AUDIO: boolean;
 
 import type { Message, ActiveFlow, PreloadedStep, ClickyStorageState, BackgroundMessage, ContentMessage } from './types';
 
@@ -25,6 +26,10 @@ const ONBOARDING_FLOW_SEQUENCE = [
 
 // Cache a verified Altair session for 5 minutes to avoid /api/users/me on every message
 const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function isAudioEnabled(preferences?: ClickyStorageState['preferences']): boolean {
+  return !DISABLE_AUDIO && preferences?.voiceEnabled !== false;
+}
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -266,7 +271,7 @@ async function processTranscript(transcript: string, tabId?: number): Promise<vo
     });
   }
 
-  const audioDataUrl = preferences?.voiceEnabled !== false
+  const audioDataUrl = isAudioEnabled(preferences)
     ? await fetchTTSDataUrl(speechText)
     : null;
 
@@ -314,7 +319,7 @@ async function advanceFlow(tabId?: number): Promise<void> {
     if (nextIndex >= activeFlow.steps.length) {
       console.log('[clicky] flow complete', { slug: activeFlow.slug });
       const completionText = activeFlow.completionMessage || 'All done!';
-      const audioDataUrl = preferences?.voiceEnabled !== false ? await fetchTTSDataUrl(completionText) : null;
+      const audioDataUrl = isAudioEnabled(preferences) ? await fetchTTSDataUrl(completionText) : null;
       if (tabId) {
         sendToTab(tabId, { type: 'FLOW_DONE', anchor: null, autoClick: false, speechText: completionText, audioDataUrl });
       }
@@ -397,7 +402,7 @@ async function sendPreloadedStep(step: PreloadedStep, flowSlug: string, tabId?: 
 
   // Fetch TTS async and send audio when ready
   const { preferences } = await loadState();
-  if (preferences?.voiceEnabled !== false) {
+  if (isAudioEnabled(preferences)) {
     fetchTTSDataUrl(step.instruction).then((audioDataUrl) => {
       if (audioDataUrl) sendToTab(tabId, { type: 'PLAY_AUDIO', audioDataUrl });
     });
@@ -468,7 +473,7 @@ async function handleUrlChanged(url: string, tabId?: number): Promise<void> {
   const text = await accumulateSSEStream(response);
   if (!text.trim() || text.includes('NO_TIP')) return;
 
-  const audioDataUrl = preferences.voiceEnabled !== false
+  const audioDataUrl = isAudioEnabled(preferences)
     ? await fetchTTSDataUrl(text)
     : null;
 
