@@ -1,0 +1,21 @@
+name: Emergency automation contract
+on:
+  pull_request:
+    branches: [main, preprod]
+    paths:
+      - .github/scripts/emergency_pr.py
+      - .github/scripts/test_emergency_pr.py
+      - .github/workflows/emergency-auto-approve.yml
+      - .github/workflows/emergency-contract.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s .github/scripts -p test_emergency_pr.py -v
