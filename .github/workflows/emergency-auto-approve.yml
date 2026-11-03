@@ -13,12 +13,12 @@ permissions:
   actions: read
 
 concurrency:
-  group: emergency-${{ github.event.pull_request.number }}
+  group: emergency-${{ github.event.pull_request.number }}-${{ (contains(github.event.pull_request.labels.*.name, 'emergency') || (github.event.action == 'unlabeled' && github.event.label.name == 'emergency')) && 'active' || 'inactive' }}
   cancel-in-progress: true
 
 jobs:
   approve:
-    if: contains(github.event.pull_request.labels.*.name, 'emergency') && !github.event.pull_request.draft
+    if: contains(github.event.pull_request.labels.*.name, 'emergency') || (github.event.action == 'unlabeled' && github.event.label.name == 'emergency')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -39,5 +39,4 @@ jobs:
           GH_MERGE_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REQUEST_ACTOR: ${{ github.event.sender.login }}
-          EMERGENCY_MODE: merge
         run: python3 .github/scripts/emergency_pr.py
