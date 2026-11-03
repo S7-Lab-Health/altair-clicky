@@ -1,0 +1,43 @@
+name: Emergency auto-approve
+
+on:
+  pull_request_target:
+    branches: [main, preprod]
+    types: [opened, edited, labeled, unlabeled, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  statuses: read
+  actions: read
+
+concurrency:
+  group: emergency-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  approve:
+    if: contains(github.event.pull_request.labels.*.name, 'emergency') && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout trusted base only
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Generate app token
+        id: app-token
+        uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a
+        with:
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+      - name: Validate, approve and handle emergency PR
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+          GH_MERGE_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REQUEST_ACTOR: ${{ github.event.sender.login }}
+          EMERGENCY_MODE: merge
+        run: python3 .github/scripts/emergency_pr.py
