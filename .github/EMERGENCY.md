@@ -9,3 +9,7 @@ The handler runs from the trusted base commit, never from PR code. It checks the
 `main`/`preprod` promotion PRs use a merge commit to preserve ancestry. Other PRs retain squash behavior. No source branch is deleted by this workflow.
 
 Local qualification: `python3 -m unittest discover -s .github/scripts -p test_emergency_pr.py`. Live qualification still requires an actual labeled PR, approved app access, successful required checks and verification of the resulting post-merge run. Do not claim end-to-end success from local tests alone.
+
+## Verifying automatic merging
+
+Keep branch protections enabled during a live merge test. Record the exact PR head, required-check results, emergency workflow conclusion and merge actor. Bot approval alone does not prove automatic merging. A deliberately conflicting probe verifies approval and conflict rejection, but cannot establish successful merging.
