@@ -68,14 +68,8 @@ class EmergencyTests(unittest.TestCase):
                     }
                 ],
                 {
-                    "data": {
-                        "repository": {
-                            "ref": {
-                                "branchProtectionRule": {
-                                    "requiredStatusCheckContexts": ["CI"]
-                                }
-                            }
-                        }
+                    "protection": {
+                        "required_status_checks": {"contexts": ["CI"], "checks": []}
                     }
                 },
             ],

@@ -3,7 +3,7 @@ name: Emergency auto-approve
 on:
   pull_request_target:
     branches: [main, preprod]
-    types: [labeled, unlabeled, synchronize, reopened, ready_for_review]
+    types: [opened, edited, labeled, unlabeled, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read

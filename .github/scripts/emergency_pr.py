@@ -38,33 +38,22 @@ def required_contexts(repo, branch):
     # Check both modern rulesets and legacy protection. API permission errors
     # are not interpreted as absence of branch protection.
     rules = gh(["api", f"repos/{repo}/rules/branches/{branch}"])
-    owner, name = repo.split("/")
-    query = """query($owner:String!,$name:String!,$ref:String!){repository(owner:$owner,name:$name){
-        ref(qualifiedName:$ref){branchProtectionRule{requiredStatusCheckContexts}}}}"""
-    result = gh(
-        [
-            "api",
-            "graphql",
-            "-f",
-            f"query={query}",
-            "-f",
-            f"owner={owner}",
-            "-f",
-            f"name={name}",
-            "-f",
-            f"ref=refs/heads/{branch}",
-        ]
-    )
-    if result.get("errors"):
-        raise Refused("Could not resolve branch protection")
-    protection = result["data"]["repository"]["ref"]["branchProtectionRule"]
+    # The branch read exposes legacy required status contexts with contents:read.
+    # Reading BranchProtectionRule through GraphQL instead requires privileges
+    # unavailable to GITHUB_TOKEN on legacy-protected repositories.
+    result = gh(["api", f"repos/{repo}/branches/{branch}"])
+    if "protection" not in result:
+        raise Refused("Branch response omitted protection metadata")
+    protection = result["protection"] or {}
     contexts = set()
     for rule in rules:
         if rule["type"] == "required_status_checks":
             contexts.update(
                 c["context"] for c in rule["parameters"]["required_status_checks"]
             )
-    contexts.update((protection or {}).get("requiredStatusCheckContexts", []))
+    required = protection.get("required_status_checks") or {}
+    contexts.update(required.get("contexts", []))
+    contexts.update(check["context"] for check in required.get("checks", []))
     return contexts
 
 
